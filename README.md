@@ -42,7 +42,7 @@ And created by drinstall:
 /dr/txt/shorthelp.txt                  -- shown when dr is run with no args
 /dr/bin/hostinit                       -- automatically run on host when installed
 /dr/bin/help                           -- show help for commands available
-/dr/bin/run                            -- default action (when no args, or first arg doesn't match any other command)
+/dr/bin/run                            -- make the service go!
 ```
 Also create files in bin that can be run on the host to manage the container (e.g. configure).
 
