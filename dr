@@ -43,12 +43,12 @@ EOF
    retrievedirectory
    echo "AVAILABLE SERVICES"
    find "$DIRECTORY" -maxdepth 1 -type d | while read SERVICE; do 
-      if [ -e "$SERVICE/shorthelp.txt" ]; then
-         SHORTHELP=$(<"$SERVICE/shorthelp.txt")
+      if [ -e "$SERVICE/txt/shorthelp.txt" ]; then
+         SHORTHELP=$(<"$SERVICE/txt/shorthelp.txt")
          echo "${SERVICE##*/} - $SHORTHELP"
       else
-         if [ -e "$SERVICE/containername.txt" ]; then
-            CONTAINERNAME=$(<"$SERVICE/containername.txt")
+         if [ -e "$SERVICE/txt/containername.txt" ]; then
+            CONTAINERNAME=$(<"$SERVICE/txt/containername.txt")
             echo "${SERVICE##*/} - from $CONTAINERNAME"
          fi
       fi
@@ -82,8 +82,10 @@ function install {
    retrievedirectory
    
    DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
-   mkdir -p "${DIRSERVICE}"
-   echo "${CONTAINERNAME}" > "${DIRSERVICE}/containername.txt"
+   mkdir -p "${DIRSERVICE}/txt"
+   mkdir -p "${DIRSERVICE}/bin"
+   echo "${CONTAINERNAME}" > "${DIRSERVICE}/txt/containername.txt"
+   echo "${SERVICENAME}" > "${DIRSERVICE}/txt/servicename.txt" 
    
    # assumes docker image uses cmd but not entrypoint. Could instead override entrypoint maybe.
    docker run --rm -i -t --name="$DNAME" -h "${HOSTNAME}" \
@@ -91,8 +93,8 @@ function install {
       
    # if the install process created an init script then run it, e.g. to create volume containers.
    # todo: tidy up return/exit codes!         
-   if [ -e "${DIRSERVICE}/hostinit" ]; then
-      bash "${DIRSERVICE}/hostinit"
+   if [ -e "${DIRSERVICE}/bin/hostinit" ]; then
+      bash "${DIRSERVICE}/bin/hostinit"
    fi
 }
 
