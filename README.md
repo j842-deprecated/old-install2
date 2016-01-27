@@ -32,7 +32,7 @@ dr simplesecrets < myfile
 
 ## Files needed
 
-Create the drinstall script
+The container image must include the drinstall script
 ```
 /usr/local/bin/drinstall SERVICENAME   -- populates /dr with everything below.
 ```
