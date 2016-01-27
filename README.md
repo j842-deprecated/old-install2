@@ -3,6 +3,11 @@ Docker Runner
 
 # Use
 
+Configure dr's main directory for scripts (will ensure it's in the current user's path):
+```
+dr configure DIRECTORY
+```
+
 Install a container supporting dr from DockerHub
 ```
 dr install CONTAINERNAME
