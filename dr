@@ -1,0 +1,124 @@
+#!/bin/bash
+
+# ------------------------------------------------------------------
+#
+#  dr : docker runner
+#  manage docker containers in a simple and consistent way.
+#
+# ------------------------------------------------------------------
+
+readonly DRETCDIR="/etc/dr"
+function retrievedirectory {
+   if [ ! -d $DRETCDIR ]; then echo "Run configure before other commands.">&2 ; exit 1 ; fi
+   DIRECTORY=$(<${DRETCDIR}/directrory)
+   if [ -z $DIRECTORY ]; then echo "Run configure before other commands.">&2 ; exit 1 ; fi
+}
+
+
+function showusage {
+cat <<'EOF' >&2
+
+NAME
+   dr - docker runner
+   
+SYNOPSIS
+   dr configure DIRECTORY
+   dr install CONTAINERNAME SERVICENAME
+   dr SERVICENAME COMMAND ARGS
+
+DESCRIPTION
+   Provides a standard way to manage and run containers supporting dr.
+   Intended to be used both manually and via Ansible.
+   
+EXIT CODE
+   0   - success
+   1   - error
+   3   - no changes made
+   
+EOF
+
+   # list available services. 
+   # function install here should create containername.txt
+   # the container's drinstall script should create the shorthelp.txt file
+   retrievedirectory
+   echo "AVAILABLE SERVICES"
+   find "$DIRECTORY" -maxdepth 1 -type d | while read SERVICE; do 
+      if [ -e "$SERVICE/shorthelp.txt" ]; then
+         SHORTHELP=$(<"$SERVICE/shorthelp.txt")
+         echo "${SERVICE##*/} - $SHORTHELP"
+      else
+         if [ -e "$SERVICE/containername.txt" ]; then
+            CONTAINERNAME=$(<"$SERVICE/containername.txt")
+            echo "${SERVICE##*/} - from $CONTAINERNAME"
+         fi
+      fi
+   done
+   
+   exit 1
+}
+
+#------------------------------------------------------------------------------------
+
+# configure DIRECTORY
+function configure {
+   DIRECTORY="$1"
+   if [ -z $DIRECTORY ]; then echo "dr configure requires directory argument.">&2 ; exit 1 ; fi
+   mkdir -p "$DIRECTORY"   # ensure directrory exists.
+   mkdir -p "$DRETCDIR"   # ensure directrory exists.
+   
+   echo "$DIRECTORY" > "${DRETCDIR}/directrory"
+}
+
+
+# install CONTAINERNAME
+function install {
+   CONTAINERNAME="$1"
+   SERVICENAME="$2"
+   
+   if [ -z $CONTAINERNAME ]; then echo "dr install requires CONTAINERNAME.">&2 ; exit 1 ; fi
+   if [ -z $SERVICENAME ]; then echo "dr install requires SERVICENAME.">&2 ; exit 1 ; fi
+   
+   DNAME="dr-install"
+   retrievedirectory
+   
+   DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
+   mkdir -p "${DIRSERVICE}"
+   echo "${CONTAINERNAME}" > "${DIRSERVICE}/containername.txt"
+   
+   # assumes docker image uses cmd but not entrypoint. Could instead override entrypoint maybe.
+   docker run --rm -i -t --name="$DNAME" -h "${HOSTNAME}" \
+               -v ${DIRSERVICE}:/dr ${CONTAINERNAME} /usr/local/bin/drinstall ${SERVICENAME}
+      
+   # if the install process created an init script then run it, e.g. to create volume containers.
+   # todo: tidy up return/exit codes!         
+   if [ -e "${DIRSERVICE}/hostinit" ]; then
+      bash "${DIRSERVICE}/hostinit"
+   fi
+}
+
+
+
+#------------------------------------------------------------------------------------
+
+CMD="$1"
+shift
+
+case "$CMD" in
+   configure)
+      configure "$@"   # Expands to separate params even in quotes. http://www.gnu.org/software/bash/manual/bash.html#Special-Parameters
+      ;;
+      
+   install)
+      install "$@"
+      ;;
+      
+   *)
+      # check if CMD matches a service. If so run that script.
+      # TODO
+      
+      # otherwise show usage.
+      showusage
+      ;;
+esac
+
+
