@@ -12,15 +12,21 @@ DRGROUP="drgroup"
 IMAGENAMETXT="imagename.txt"
 
 readonly DRETCDIR="/etc/dr"
+
 function retrieveDIRECTORY {
    if [ ! -d "$DRETCDIR" ]; then echo "Run configure before other commands.">&2 ; exit 1 ; fi
    DIRECTORY=$(<${DRETCDIR}/directory)
    if [ -z "$DIRECTORY" ]; then echo "Run configure before other commands.">&2 ; exit 1 ; fi
 }
+
 function retrieveCONTAINERNAME {
    SERVICE="$1"
    CONTAINERNAME=$(<"${SERVICE}/txt/${IMAGENAMETXT}")
    if [ -z "$CONTAINERNAME" ]; then echo "Error - can't read ${IMAGENAMETXT}.">&2 ; exit 1 ; fi
+}
+
+function serviceline {
+   printf "   %-15s - %-55s\n" "$1" "$2"
 }
 
 function showservices {
@@ -32,11 +38,11 @@ function showservices {
    find "$DIRECTORY" -maxdepth 1 -type d | while read SERVICE; do 
       if [ -e "$SERVICE/txt/shorthelp.txt" ]; then
          SHORTHELP=$(<"$SERVICE/txt/shorthelp.txt")
-         echo "   ${SERVICE##*/} - $SHORTHELP"
+         serviceline "${SERVICE##*/}" "$SHORTHELP"
       else
          if [ -e "${SERVICE}/txt/${IMAGENAMETXT}" ]; then
             CONTAINERNAME=$(<"$SERVICE/txt/${IMAGENAMETXT}")
-            echo "   ${SERVICE##*/} - from $CONTAINERNAME"
+            serviceline "${SERVICE##*/}" "$CONTAINERNAME"
          fi
       fi
    done
