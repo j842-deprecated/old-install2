@@ -30,14 +30,23 @@ dr simplesecrets < myfile
 
 # Making a container compatible with dr
 
+## Example
+
+For an example see: https://github.com/j842/docker-dr-helloworld
+
+## User
+
+dr creates druser with uid 22022 and druser with gid 22022 on the host.
+dr expects the Dockerfile to create that user and group and a USER command to switch to it.
+
 ## Files needed
 
 The container image must include the drinstall script
 ```
-/usr/local/bin/drinstall SERVICENAME   -- populates /dr with everything below.
+/usr/local/bin/drinstall SERVICENAME IMAGE      -- populates /dr with everything below.
 ```
 
-And created by drinstall:
+And drinstall neads to create the following:
 ```
 /dr/txt/shorthelp.txt                           -- shown when dr is run with no args
 /dr/bin/hostinit SERVICENAME IMAGE              -- automatically run on host when installed
@@ -47,8 +56,9 @@ And created by drinstall:
 ```
 Also create files in bin that can be run on the host to manage the container (e.g. configure).
 
-## Files automatically added by dr
+## Files automatically added by dr available within the container
 
 ```
-/dr/txt/containername.txt              -- e.g. j842/simplesecrets 
+/dr/txt/containername.txt              -- e.g. j842/simplesecrets
+/dr/txt/servicename.txt                -- e.g. simplesecrets
 ```
