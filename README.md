@@ -17,7 +17,7 @@ Configure dr's main directory for scripts. Only needs to be called once per host
     dr configure DIRECTORY
 ```
 
-Install a container supporting dr from DockerHub:
+Install a container from DockerHub that supports dr:
 ```
     dr install CONTAINERNAME SERVICENAME
 ```
