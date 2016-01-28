@@ -9,24 +9,34 @@ simple commands (no manual needed) to use any compatible service.
 # Basic Use
 
 Configure dr's main directory for scripts. Only needs to be called once per host:
+```
     dr configure DIRECTORY
+```
 
 Install a container supporting dr from DockerHub:
+```
     dr install CONTAINERNAME SERVICENAME
+```
 
 Manage that container:
+```
     dr SERVICENAME COMMAND ARGS
+```
 
 ## Example
 
 ### First time installation
 
 Install dr on the host:
+```
     wget https://raw.githubusercontent.com/j842/dr/master/dr ; chmod a+x dr
     mv dr /usr/local/bin
+```
 
 Configure dr:
+```
     dr configure /opt/dr
+```
 
 Now you're ready to try things.
 
@@ -35,18 +45,24 @@ Now you're ready to try things.
 #### Helloworld
 
 Install and try the [helloworld](https://github.com/j842/docker-dr-helloworld) example:
+```
     dr install j842/dr-helloworld helloworld
     dr helloworld run
+```
 
 #### SimpleSecrets
 
 Install and configure [simplesecrets](https://github.com/j842/docker-simplesecrets):
+```
     dr install j842/simplesecrets simplesecrets
     dr simplesecrets help
     S3KEY=abcde S3SECRET=1234 BUCKET=mybucket dr simplesecrets configure
+```
     
 Store secrets in S3:
+```
     dr simplesecrets < myfile
+```
 
 
 
