@@ -8,17 +8,22 @@
 # ------------------------------------------------------------------
 
 readonly DRETCDIR="/etc/dr"
-function retrievedirectory {
-   if [ ! -d $DRETCDIR ]; then echo "Run configure before other commands.">&2 ; exit 1 ; fi
+function retrieveDIRECTORY {
+   if [ ! -d "$DRETCDIR" ]; then echo "Run configure before other commands.">&2 ; exit 1 ; fi
    DIRECTORY=$(<${DRETCDIR}/directory)
-   if [ -z $DIRECTORY ]; then echo "Run configure before other commands.">&2 ; exit 1 ; fi
+   if [ -z "$DIRECTORY" ]; then echo "Run configure before other commands.">&2 ; exit 1 ; fi
+}
+function retrieveCONTAINERNAME {
+   SERVICE="$1"
+   CONTAINERNAME=$(<"$SERVICE/txt/containername.txt")
+   if [ -z "$CONTAINERNAME" ]; then echo "Error - can't read containername.txt.">&2 ; exit 1 ; fi
 }
 
 function showservices {
    # list available services. 
    # function install here should create containername.txt
    # the container's drinstall script should create the shorthelp.txt file
-   retrievedirectory
+   retrieveDIRECTORY
    echo "AVAILABLE SERVICES"
    find "$DIRECTORY" -maxdepth 1 -type d | while read SERVICE; do 
       if [ -e "$SERVICE/txt/shorthelp.txt" ]; then
@@ -85,7 +90,7 @@ function install {
    if [ -z $SERVICENAME ]; then echo "dr install requires SERVICENAME.">&2 ; exit 1 ; fi
    
    DNAME="dr-install"
-   retrievedirectory
+   retrieveDIRECTORY
    
    DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
    mkdir -p "${DIRSERVICE}/txt"
@@ -101,7 +106,7 @@ function install {
    # if the install process created an init script then run it, e.g. to create volume containers.
    # todo: tidy up return/exit codes!         
    if [ -e "${DIRSERVICE}/bin/hostinit" ]; then
-      bash "${DIRSERVICE}/bin/hostinit" "${SERVICENAME}"
+      bash "${DIRSERVICE}/bin/hostinit" "${SERVICENAME}" "${CONTAINERNAME}"
    fi
 }
 
@@ -126,18 +131,19 @@ case "$CMD" in
    *)
       # check if CMD matches a service. If so run the appropriate script.
       if [ -d $DRETCDIR ]; then
-         retrievedirectory
+         retrieveDIRECTORY
          PDIR="${DIRECTORY}/${CMD}"
          if [ -d "${PDIR}" ]; then
+            retrieveCONTAINERNAME "${PDIR}"
             SUBCMD="$1"
             shift
             FULLCMD="${PDIR}/bin/${SUBCMD}"
             if [ -n "$SUBCMD" ] && [ -e "${FULLCMD}" ]; then
-               bash "${FULLCMD}" "${CMD}" "$@"
+               bash "${FULLCMD}" "${CMD}" "${CONTAINERNAME}" "$@"
                exit $?
             else
                if [ -e "${PDIR}/bin/help" ]; then
-                  bash "${PDIR}/bin/help" "${CMD}"
+                  bash "${PDIR}/bin/help" "${CMD}" "${CONTAINERNAME}"
                else
                   echo "${CMD} does not provide any help."
                fi
