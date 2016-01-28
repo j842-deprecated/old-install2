@@ -1,11 +1,12 @@
 # Docker Runner
 
-Docker Runner (dr) is a script and a set of conventions to make it easy to install, configure and use Docker containers.
+Docker Runner (dr) is a script and a set of conventions to make it easy to install, configure and use Docker containers. 
 
 With Docker Runner each docker image has the ability to configure the host appropriately, meaning that you can use
-simple commands (no manual needed) to use any compatible service.
+simple discoverable commands (no manual needed) to use any compatible service. This configuration is flexible, with
+any options or custom configuration persisted within a docker volume container that can be managed for you.
 
-This eliminates the need to store and manage scripts to use the Docker container, or deal with long docker run commands.
+This eliminates the need to separately store and manage scripts to use the Docker container, or deal with long docker run commands.
 
 Docker Runner tries to be Ansible friendly for automation.
 
@@ -77,7 +78,7 @@ For an example see: https://github.com/j842/docker-dr-helloworld
 
 ## User
 
-dr creates druser with uid 22022 and druser with gid 22022 on the host.
+dr creates druser with uid 22022 and drgroup with gid 22022 on the host when install is run.
 dr expects the Dockerfile to create that user and group and have a USER command to switch to it.
 
 ## Files Required
