@@ -10,10 +10,28 @@
 readonly DRETCDIR="/etc/dr"
 function retrievedirectory {
    if [ ! -d $DRETCDIR ]; then echo "Run configure before other commands.">&2 ; exit 1 ; fi
-   DIRECTORY=$(<${DRETCDIR}/directrory)
+   DIRECTORY=$(<${DRETCDIR}/directory)
    if [ -z $DIRECTORY ]; then echo "Run configure before other commands.">&2 ; exit 1 ; fi
 }
 
+function showservices {
+   # list available services. 
+   # function install here should create containername.txt
+   # the container's drinstall script should create the shorthelp.txt file
+   retrievedirectory
+   echo "AVAILABLE SERVICES"
+   find "$DIRECTORY" -maxdepth 1 -type d | while read SERVICE; do 
+      if [ -e "$SERVICE/txt/shorthelp.txt" ]; then
+         SHORTHELP=$(<"$SERVICE/txt/shorthelp.txt")
+         echo "   ${SERVICE##*/} - $SHORTHELP"
+      else
+         if [ -e "$SERVICE/txt/containername.txt" ]; then
+            CONTAINERNAME=$(<"$SERVICE/txt/containername.txt")
+            echo "   ${SERVICE##*/} - from $CONTAINERNAME"
+         fi
+      fi
+   done
+}
 
 function showusage {
 cat <<'EOF' >&2
@@ -36,24 +54,7 @@ EXIT CODE
    3   - no changes made
    
 EOF
-
-   # list available services. 
-   # function install here should create containername.txt
-   # the container's drinstall script should create the shorthelp.txt file
-   retrievedirectory
-   echo "AVAILABLE SERVICES"
-   find "$DIRECTORY" -maxdepth 1 -type d | while read SERVICE; do 
-      if [ -e "$SERVICE/txt/shorthelp.txt" ]; then
-         SHORTHELP=$(<"$SERVICE/txt/shorthelp.txt")
-         echo "${SERVICE##*/} - $SHORTHELP"
-      else
-         if [ -e "$SERVICE/txt/containername.txt" ]; then
-            CONTAINERNAME=$(<"$SERVICE/txt/containername.txt")
-            echo "${SERVICE##*/} - from $CONTAINERNAME"
-         fi
-      fi
-   done
-   
+   showservices
    exit 1
 }
 
@@ -63,10 +64,15 @@ EOF
 function configure {
    DIRECTORY="$1"
    if [ -z $DIRECTORY ]; then echo "dr configure requires directory argument.">&2 ; exit 1 ; fi
-   mkdir -p "$DIRECTORY"   # ensure directrory exists.
-   mkdir -p "$DRETCDIR"   # ensure directrory exists.
+   mkdir -p "$DRETCDIR"   # ensure directrory exists.   
+   echo "$DIRECTORY" > "${DRETCDIR}/directory"
    
-   echo "$DIRECTORY" > "${DRETCDIR}/directrory"
+   # set up standard docker user and group for containers.
+   groupadd -g 2000 dockergroup
+   adduser --disabled-password --gecos '' -u 2000 --gid 2000 dockeruser
+
+   mkdir -p "$DIRECTORY"   # ensure directrory exists.
+   chown -R dockeruser:dockergroup "$DIRECTORY"
 }
 
 
@@ -86,7 +92,8 @@ function install {
    mkdir -p "${DIRSERVICE}/bin"
    echo "${CONTAINERNAME}" > "${DIRSERVICE}/txt/containername.txt"
    echo "${SERVICENAME}" > "${DIRSERVICE}/txt/servicename.txt" 
-   
+   chown -R dockeruser:dockergroup "${DIRSERVICE}"
+
    # assumes docker image uses cmd but not entrypoint. Could instead override entrypoint maybe.
    docker run --rm -i -t --name="$DNAME" -h "${HOSTNAME}" \
                -v ${DIRSERVICE}:/dr ${CONTAINERNAME} /usr/local/bin/drinstall ${SERVICENAME}
@@ -94,11 +101,9 @@ function install {
    # if the install process created an init script then run it, e.g. to create volume containers.
    # todo: tidy up return/exit codes!         
    if [ -e "${DIRSERVICE}/bin/hostinit" ]; then
-      bash "${DIRSERVICE}/bin/hostinit"
+      bash "${DIRSERVICE}/bin/hostinit" "${SERVICENAME}"
    fi
 }
-
-
 
 #------------------------------------------------------------------------------------
 
@@ -113,13 +118,36 @@ case "$CMD" in
    install)
       install "$@"
       ;;
-      
-   *)
-      # check if CMD matches a service. If so run that script.
-      # TODO
-      
-      # otherwise show usage.
+
+   "")
       showusage
+      ;;
+   
+   *)
+      # check if CMD matches a service. If so run the appropriate script.
+      if [ -d $DRETCDIR ]; then
+         retrievedirectory
+         PDIR="${DIRECTORY}/${CMD}"
+         if [ -d "${PDIR}" ]; then
+            SUBCMD="$1"
+            shift
+            FULLCMD="${PDIR}/bin/${SUBCMD}"
+            if [ -n "$SUBCMD" ] && [ -e "${FULLCMD}" ]; then
+               bash "${FULLCMD}" "${CMD}" "$@"
+               exit $?
+            else
+               if [ -e "${PDIR}/bin/help" ]; then
+                  bash "${PDIR}/bin/help" "${CMD}"
+               else
+                  echo "${CMD} does not provide any help."
+               fi
+               exit $?
+            fi
+         fi
+      fi
+            
+      # otherwise show usage.
+      showservices
       ;;
 esac
 

@@ -39,10 +39,11 @@ The container image must include the drinstall script
 
 And created by drinstall:
 ```
-/dr/txt/shorthelp.txt                  -- shown when dr is run with no args
-/dr/bin/hostinit                       -- automatically run on host when installed
-/dr/bin/help                           -- show help for commands available
-/dr/bin/run                            -- make the service go!
+/dr/txt/shorthelp.txt                     -- shown when dr is run with no args
+/dr/bin/hostinit SERVICENAME              -- automatically run on host when installed
+/dr/bin/help SERVICENAME                  -- show help for commands available
+/dr/bin/run SERVICENAME [ARGS...]         -- make the service go!
+/dr/bin/ANOTHERCMD SERVICENAME [ARGS...]  -- any other command needed.
 ```
 Also create files in bin that can be run on the host to manage the container (e.g. configure).
 
@@ -50,5 +51,4 @@ Also create files in bin that can be run on the host to manage the container (e.
 
 ```
 /dr/txt/containername.txt              -- e.g. j842/simplesecrets 
-/dr/txt/servicename.txt                -- e.g. simplesecrets
 ```
