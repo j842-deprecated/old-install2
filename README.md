@@ -1,10 +1,13 @@
-# dr
-Docker Runner
+# Docker Runner
 
-Docker Runner is a script and a set of conventions to make it easy to install, configure and use Docker containers.
+Docker Runner (dr) is a script and a set of conventions to make it easy to install, configure and use Docker containers.
 
 With Docker Runner each docker image has the ability to configure the host appropriately, meaning that you can use
 simple commands (no manual needed) to use any compatible service.
+
+This eliminates the need to store and manage scripts to use the Docker container, or deal with long docker run commands.
+
+Docker Runner tries to be Ansible friendly for automation.
 
 # Basic Use
 
@@ -75,28 +78,54 @@ For an example see: https://github.com/j842/docker-dr-helloworld
 ## User
 
 dr creates druser with uid 22022 and druser with gid 22022 on the host.
-dr expects the Dockerfile to create that user and group and a USER command to switch to it.
+dr expects the Dockerfile to create that user and group and have a USER command to switch to it.
 
-## Files needed
+## Files Required
 
 The container image must include the drinstall script
 ```
 /usr/local/bin/drinstall SERVICENAME IMAGE      -- populates /dr with everything below.
 ```
+When dr install is invoked on the host:
+* the service's directory on the host is mapped to /dr in the container,
+* the container is started and the drinstall script is run inside the container.
 
-And drinstall neads to create the following:
+drinstall then neads to create the following help file:
 ```
 /dr/txt/shorthelp.txt                           -- shown when dr is run with no args
+```
+
+and the following scripts that can be run on the host:
+```
 /dr/bin/hostinit SERVICENAME IMAGE              -- automatically run on host when installed
 /dr/bin/help SERVICENAME IMAGE                  -- show help for commands available
-/dr/bin/run SERVICENAME IMAGE [ARGS...]         -- make the service go!
+/dr/bin/run SERVICENAME IMAGE [ARGS...]         -- run on the host to make the service go!
+```
+
+### Additional commands
+
+You can also add any other comamnd that would be useful, e.g. a configuration command.
+```
 /dr/bin/ANOTHERCMD SERVICENAME IMAGE [ARGS...]  -- any other command needed.
 ```
-Also create files in bin that can be run on the host to manage the container (e.g. configure).
 
-## Files automatically added by dr available within the container
+Those commands are invoked from the host with
+```
+dr SERVICENAME ANOTHERCMD [ARGS...]
+```
+
+## Files automatically added by dr which are available within the container
 
 ```
 /dr/txt/containername.txt              -- e.g. j842/simplesecrets
 /dr/txt/servicename.txt                -- e.g. simplesecrets
 ```
+
+## Exit Codes
+
+The convention for exit codes is:
+* 0 for success,
+* 1 for error and 
+* 3 for no change 
+
+This is to aid Ansible.
