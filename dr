@@ -9,6 +9,7 @@
 
 DRUSER="druser"
 DRGROUP="drgroup"
+IMAGENAMETXT="imagename.txt"
 
 readonly DRETCDIR="/etc/dr"
 function retrieveDIRECTORY {
@@ -18,13 +19,13 @@ function retrieveDIRECTORY {
 }
 function retrieveCONTAINERNAME {
    SERVICE="$1"
-   CONTAINERNAME=$(<"$SERVICE/txt/containername.txt")
-   if [ -z "$CONTAINERNAME" ]; then echo "Error - can't read containername.txt.">&2 ; exit 1 ; fi
+   CONTAINERNAME=$(<"${SERVICE}/txt/${IMAGENAMETXT}")
+   if [ -z "$CONTAINERNAME" ]; then echo "Error - can't read ${IMAGENAMETXT}.">&2 ; exit 1 ; fi
 }
 
 function showservices {
    # list available services. 
-   # function install here should create containername.txt
+   # function install here should create imagename.txt
    # the container's drinstall script should create the shorthelp.txt file
    retrieveDIRECTORY
    echo "AVAILABLE SERVICES"
@@ -33,8 +34,8 @@ function showservices {
          SHORTHELP=$(<"$SERVICE/txt/shorthelp.txt")
          echo "   ${SERVICE##*/} - $SHORTHELP"
       else
-         if [ -e "$SERVICE/txt/containername.txt" ]; then
-            CONTAINERNAME=$(<"$SERVICE/txt/containername.txt")
+         if [ -e "${SERVICE}/txt/${IMAGENAMETXT}" ]; then
+            CONTAINERNAME=$(<"$SERVICE/txt/${IMAGENAMETXT}")
             echo "   ${SERVICE##*/} - from $CONTAINERNAME"
          fi
       fi
@@ -98,7 +99,7 @@ function install {
    DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
    mkdir -p "${DIRSERVICE}/txt"
    mkdir -p "${DIRSERVICE}/bin"
-   echo "${CONTAINERNAME}" > "${DIRSERVICE}/txt/containername.txt"
+   echo "${CONTAINERNAME}" > "${DIRSERVICE}/txt/${IMAGENAMETXT}"
    echo "${SERVICENAME}" > "${DIRSERVICE}/txt/servicename.txt" 
    chown -R "${DRUSER}:${DRGROUP}" "${DIRSERVICE}"
 

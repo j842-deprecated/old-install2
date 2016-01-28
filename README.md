@@ -118,7 +118,7 @@ dr SERVICENAME ANOTHERCMD [ARGS...]
 ## Files automatically added by dr which are available within the container
 
 ```
-/dr/txt/containername.txt              -- e.g. j842/simplesecrets
+/dr/txt/imagename.txt                  -- e.g. j842/simplesecrets
 /dr/txt/servicename.txt                -- e.g. simplesecrets
 ```
 
