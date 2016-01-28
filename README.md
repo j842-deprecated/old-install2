@@ -8,20 +8,14 @@ simple commands (no manual needed) to use any compatible service.
 
 # Basic Use
 
-Configure dr's main directory for scripts. Only needs to be called once ever per host.
-```
-dr configure DIRECTORY
-```
+Configure dr's main directory for scripts. Only needs to be called once per host:
+    dr configure DIRECTORY
 
-Install a container supporting dr from DockerHub
-```
-dr install CONTAINERNAME SERVICENAME
-```
+Install a container supporting dr from DockerHub:
+    dr install CONTAINERNAME SERVICENAME
 
-Manage that container
-```
-dr SERVICENAME COMMAND ARGS
-```
+Manage that container:
+    dr SERVICENAME COMMAND ARGS
 
 ## Example
 
