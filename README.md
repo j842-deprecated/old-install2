@@ -28,7 +28,7 @@ Configure sets up dr's main directory for storing services. Only needs to be cal
 
 Install a container (e.g. from DockerHub) that supports dr and call the service 'SERVICENAME'.
 ```
-    dr install CONTAINERNAME SERVICENAME
+    dr install IMAGENAME SERVICENAME
 ```
 
 Manage that service:
@@ -46,11 +46,12 @@ Destroy the service, including destroying all stored data, leaving the host in a
     dr destroy SERVICENAME
 ``` 
 
-Other always available commands:
+Other commands that work on all services:
 ```
-dr backup SERVICENAME BACKUPFILE
-dr restore SERVICENAME BACKUPFILE
-dr shell SERVICENAME
+dr backup SERVICENAME BACKUPFILE     -- backup
+dr restore SERVICENAME BACKUPFILE    -- restore (destructive, no confirmation! always backup first)
+dr shell SERVICENAME                 -- shell access to container
+dr update SERVICENAME                -- update service scripts from container (e.g. after docker pull)
 ```
    
 
@@ -144,13 +145,6 @@ You can also add any other command that would be useful, e.g. run, configure etc
 Those commands are invoked from the host with
 ```
 dr SERVICENAME ANOTHERCMD [ARGS...]
-```
-
-## Files automatically added by dr which are available within the container
-
-```
-/dr/config/imagename.txt                  -- e.g. j842/simplesecrets
-/dr/config/servicename.txt                -- e.g. simplesecrets
 ```
 
 ## Exit Codes

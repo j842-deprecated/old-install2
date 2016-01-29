@@ -10,48 +10,48 @@
 #
 # ------------------------------------------------------------------
 
-DRUSER="druser"
-DRGROUP="drgroup"
-IMAGENAMETXT="imagename.txt"
-
+# Global constants.
+readonly DRUSER="druser"
+readonly DRGROUP="drgroup"
 readonly DRETCDIR="/etc/dr"
+readonly DRCFGDIR="drcfg"
+readonly CFG_DIRECTORY="${DRETCDIR}/directory"
+readonly CFG_IMAGENAME="${DRCFGDIR}/imagename.txt"
+readonly CFG_SERVICENAME="${DRCFGDIR}/servicename.txt"
+readonly REQDFILES=("txt/shorthelp.txt" "host/install" "host/destroy" "host/backup" "host/restore" "host/help" )
+   
+# Global variables
+SERVICENAME=""
+DIRECTORY=""  
+DIRSERVICE=""
+IMAGENAME=""
 
-# retriveDIRECTORY
-function retrieveDIRECTORY {
-   if [ ! -d "$DRETCDIR" ]; then echo "Run configure before other commands.">&2 ; exit 1 ; fi
-   DIRECTORY=$(<${DRETCDIR}/directory)
-   if [ -z "$DIRECTORY" ]; then echo "Run configure before other commands.">&2 ; exit 1 ; fi
-}
 
-# retrieveCONTAINERNAME SERVICE
-function retrieveCONTAINERNAME {
-   local SERVICEDIR="$1"
-   if [ ! -d ${SERVICEDIR} ]; then echo "Error - no such directory: ${SERVICEDIR}.">&2 ; exit 1 ; fi
-   CONTAINERNAME=$(<"${SERVICEDIR}/txt/${IMAGENAMETXT}")
-   if [ -z "$CONTAINERNAME" ]; then echo "Error - can't read ${IMAGENAMETXT}.">&2 ; exit 1 ; fi
-}
-
+# serviceline SERVICE SHORTHELP
 function serviceline {
    printf "   %-15s - %-55s\n" "$1" "$2"
 }
-# trim VARIABLENAME
+
+# trim VARIABLENAME - seems to fail at /r. :/
 function trim {
     read -rd '' $1 <<<"${!1}"
 }
+
+# showservices
 function showservices {
    # list available services. 
    # function install here should create imagename.txt
    # the container's drinstall script should create the shorthelp.txt file
-   retrieveDIRECTORY
+   if [ -z $DIRECTORY ]; then echo "Main directory not set - can't show services." ; exit 1 ; fi
    echo "AVAILABLE SERVICES"
-   find "$DIRECTORY" -maxdepth 1 -type d | while read SERVICE; do 
-      if [ -e "$SERVICE/txt/shorthelp.txt" ]; then
-         SHORTHELP=$(<"$SERVICE/txt/shorthelp.txt")
-         serviceline "${SERVICE##*/}" "$SHORTHELP"
+   find "$DIRECTORY" -maxdepth 1 -type d | while read SERVICEPATH; do 
+      if [ -e "$SERVICEPATH/txt/shorthelp.txt" ]; then
+         SHORTHELP=$(<"$SERVICEPATH/txt/shorthelp.txt")
+         serviceline "${SERVICEPATH##*/}" "$SHORTHELP"
       else
-         if [ -e "${SERVICE}/txt/${IMAGENAMETXT}" ]; then
-            CONTAINERNAME=$(<"$SERVICE/txt/${IMAGENAMETXT}")
-            serviceline "${SERVICE##*/}" "$CONTAINERNAME"
+         if [ -e "${SERVICEPATH}/${CFG_IMAGENAME}" ]; then ***
+            CONTAINERNAME=$(<"$SERVICEPATH/${CFG_IMAGENAME}")
+            serviceline "${SERVICEPATH##*/}" "$IMAGENAME"
          fi
       fi
    done
@@ -67,14 +67,19 @@ SYNOPSIS
    dr configure DIRECTORY
    dr clean
    
-   dr install CONTAINERNAME SERVICENAME
+   dr install IMAGENAME SERVICENAME
+   dr backup SERVICENAME BACKUPFILE
+   dr restore SERVICENAME BACKUPFILE
    dr destroy SERVICENAME
+   dr shell SERVICENAME
    
+   dr SERVICENAME
    dr SERVICENAME COMMAND ARGS
 
 DESCRIPTION
    Provides a standard way to manage and run containers supporting dr.
    Intended to be used both manually and via Ansible.
+   See https://github.com/j842/dr
    
 EXIT CODE
    0   - success
@@ -82,18 +87,15 @@ EXIT CODE
    3   - no changes made
    
 EOF
-   showservices
-   exit 1
 }
 
 #------------------------------------------------------------------------------------
 
-# configure DIRECTORY
+# configure
 function configure {
-   local DIRECTORY="$1"
    if [ -z $DIRECTORY ]; then echo "dr configure requires directory argument.">&2 ; exit 1 ; fi
    mkdir -p "$DRETCDIR"   # ensure directrory exists.   
-   echo "$DIRECTORY" > "${DRETCDIR}/directory"
+   echo "$DIRECTORY" > "${CFG_DIRECTORY}"
    
    # set up standard docker user and group for containers.
    groupadd -g 22022 "$DRGROUP"
@@ -101,102 +103,80 @@ function configure {
 
    mkdir -p "$DIRECTORY"   # ensure directrory exists.
    chown -R "${DRUSER}:${DRGROUP}" "$DIRECTORY"
+   
+   echo "Configuration complete: created druser and set up $DIRECTORY." >&2
 }
 
-# checkconatiner CONTAINERNAME
-function checkcontainer {
-   local CONTAINERNAME="$1"
-
-   # Check mandatory files in container before touching host. Is it a dr container?
-   local REQDCFILES=("drinstall" "drdestroy")
-   for CFILE in "${REQDCFILES[@]}"; do
-      docker run --rm -it ${CONTAINERNAME} /bin/bash -c "command -v /usr/local/bin/$CFILE >/dev/null 2>&1"
-      if [ "$?" -ne 0 ]; then echo "Install failed - ${CONTAINERNAME} is not Docker Runner compatible. The script ${CFILE} is missing.">&2 ; exit 1 ; fi
+# checkimage 
+function checkimage {
+   # Check mandatory files in image (global var IMAGENAME) before touching host. Is it a valid dr container?
+   for CFILE in "${REQDFILES[@]}"; do
+      docker run --rm -it ${IMAGENAME} /bin/bash -c "command -v /dr/$CFILE >/dev/null 2>&1"
+      if [ "$?" -ne 0 ]; then echo "${IMAGENAME} is not Docker Runner compatible. The script ${CFILE} is missing.">&2 ; exit 1 ; fi
    done
-      if [ "$?" -ne 0 ]; then echo "Install failed - ${CONTAINERNAME} is not Docker Runner compatible. The script ${CFILE} is missing.">&2 ; exit 1 ; fi
    
    # Check running as druser.
-   USERID=$(docker run --rm -it ${CONTAINERNAME} /bin/bash -c "id -u")
+   USERID=$(docker run --rm -it ${IMAGENAME} /bin/bash -c "id -u")
    trim USERID
    echo "[[${USERID}]]" ; echo " "
-   if [ "$USERID" != "22022" ]; then echo "Install failed - ${CONTAINERNAME} is not Docker Runner compatible. Not running as druser (uid 22022). It's >>$USERID<<">&2 ; exit 1 ; fi   
+   if [ "$USERID" != "22022" ]; then echo "${IMAGENAME} is not Docker Runner compatible. Not running as druser (uid 22022). It's >>$USERID<<">&2 ; exit 1 ; fi   
 }
 
-# install CONTAINERNAME SERVICENAME
+# install
 function install {
-   local CONTAINERNAME="$1"
-   local SERVICENAME="$2"
    local RVALI=0
    
-   if [ -z $CONTAINERNAME ]; then echo "dr install requires CONTAINERNAME.">&2 ; exit 1 ; fi
+   if [ -z $IMAGENAME ]; then echo "dr install requires IMAGENAME.">&2 ; exit 1 ; fi
    if [ -z $SERVICENAME ]; then echo "dr install requires SERVICENAME.">&2 ; exit 1 ; fi
 
-   checkcontainer "$CONTAINERNAME"
+   checkimage
    
-   DNAME="dr-install"
-   retrieveDIRECTORY
-   DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
+   local DNAME="dr-install"
 
-   mkdir -p "${DIRSERVICE}/txt"
-   mkdir -p "${DIRSERVICE}/bin"
-   echo "${CONTAINERNAME}" > "${DIRSERVICE}/txt/${IMAGENAMETXT}"
-   echo "${SERVICENAME}" > "${DIRSERVICE}/txt/servicename.txt" 
-   chown -R "${DRUSER}:${DRGROUP}" "${DIRSERVICE}"
+   # --- all four globals now set.
+
+   mkdir -p "${DIRSERVICE}/cfg"
 
    # assumes docker image does not use entrypoint. Could instead override entrypoint maybe.
    docker run --rm -i -t --name="$DNAME" -h "${HOSTNAME}" \
-               -v ${DIRSERVICE}:/dr ${CONTAINERNAME} /usr/local/bin/drinstall ${SERVICENAME} ${CONTAINERNAME}
+               -v ${DIRSERVICE}:/tempcopy ${CONTAINERNAME} cp -a /dr/host /tempcopy && cp -a /dr/txt /tempcopy
    if [ $? -ne 0 ]; then RVALI=1 ; echo "Failed to run drinstall.">&2 ; fi  
+
+   echo "${CONTAINERNAME}" > "${DIRSERVICE}/${CFG_IMAGENAME}"
+   echo "${SERVICENAME}" > "${DIRSERVICE}/${CFG_SERVICENAME}" 
+   chown -R "${DRUSER}:${DRGROUP}" "${DIRSERVICE}"
    
-   # Check mandatory files on host.
-   local REQDHOSTFILES=("txt/shorthelp.txt" "bin/hostinstall" "bin/hostdestroy" "bin/help")
-   for HFILE in "${REQDHOSTFILES[@]}"; do
+   # Check mandatory files made it over to host okay.
+   for HFILE in "${REQDFILES[@]}"; do
       if [ ! -e "${DIRSERVICE}/${HFILE}" ]; then echo "Install failed - ${HFILE} is required" ; RVALI=1 ; fi
    done
    
-   # Run the hostinstall script, e.g. to create volume containers.
+   # Run the install script, e.g. to create volume containers.
    # todo: tidy up return/exit codes!         
    if [ "$RVALI" -eq 0 ]; then
-      bash "${DIRSERVICE}/bin/hostinstall" "${SERVICENAME}" "${CONTAINERNAME}"
+      bash "${DIRSERVICE}/host/install" "${SERVICENAME}" "${IMAGENAME}"
    fi   
    
    # If we had errors then destroy everything!
    if [ "$RVALI" -ne 0 ]; then
       echo "Installation failed, destroying the partially installed service.">&2
-      destroy ${SERVICENAME}
+      destroy
    fi
 
    exit "$RVALI"
 }
 
-# destroy SERVICENAME
+# destroy
 function destroy {
-   SERVICENAME="$1"
-     
-   if [ -z $SERVICENAME ]; then echo "dr destroy requires SERVICENAME.">&2 ; exit 1 ; fi
-
-   # Set DIRECTORY
-   retrieveDIRECTORY   
-
-   local RVALD=0
-   local DNAME="dr-destroy"
-   local DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
-   
-   # we require the service directory to be present.
+   if [ -z $SERVICENAME ]; then echo "dr destroy requires SERVICENAME to be set.">&2 ; exit 1 ; fi
    if [ ! -d "$DIRSERVICE" ]; then echo "The service ${SERVICENAME} does not exist.">&2 ; showservices ; exit 1 ; fi
    
-   # Set CONTAINERNAME
-   retrieveCONTAINERNAME "$DIRSERVICE"
-   
-   # assumes docker image does not use entrypoint. Could instead override entrypoint maybe.
-   docker run --rm -i -t --name="$DNAME" -h "${HOSTNAME}" \
-               -v ${DIRSERVICE}:/dr ${CONTAINERNAME} /usr/local/bin/drdestroy ${SERVICENAME} ${CONTAINERNAME}
-   if [ $? -ne 0 ]; then RVALD=1 ; echo "Failed to run drdestroy.">&2 ; fi  
-   
+   local RVALD=0
+
    # if the install process created a destroy script then run it, e.g. to destroy volume containers.
    # todo: tidy up return/exit codes!         
-   if [ -e "${DIRSERVICE}/bin/hostdestroy" ]; then
-      bash "${DIRSERVICE}/bin/hostdestroy" "${SERVICENAME}" "${CONTAINERNAME}"
+   if [ -e "${DIRSERVICE}/host/destroy" ]; then
+      bash "${DIRSERVICE}/host/destroy" "${SERVICENAME}" "${IMAGENAME}"
    else 
       RVALD=1
    fi      
@@ -209,57 +189,80 @@ function destroy {
 
 #------------------------------------------------------------------------------------
 
-CMD="$1"
-shift
+
+# retriveDIRECTORY
+function retrieveDIRECTORY {
+   DIRERR="Run   dr configure DIRECTORY   before any other commands."
+   if [ ! -d "$DRETCDIR" ]; then echo "$DIRERR">&2 ; exit 1 ; fi
+   DIRECTORY=$(<"${CFG_DIRECTORY}")
+   if [ -z "$DIRECTORY" ]; then echo "$DIRERR">&2 ; exit 1 ; fi
+}
+
+# setglobals
+function setglobals {
+   # expects SERVICENAME to be set.
+   if [ -z "$SERVICENAME" ]; then "setglobals requires SERVICENAME to be set first.">&2 ; exit 1 ; fi
+   retrieveDIRECTORY
+
+   DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
+   if [ ! -d "$DIRSERVICE" ]; then echo "The service ${SERVICENAME} does not exist.">&2 ; showservices ; exit 1 ; fi
+
+   IMAGENAME=$(<"${SERVICEDIR}/${CFG_IMAGENAME}") ***
+   if [ -z "$IMAGENAME" ]; then echo "Error - can't read ${CFG_IMAGENAME}.">&2 ; exit 1 ; fi
+}
+
+#------------------------------------------------------------------------------------
+
+
+CMD="$1" ; shift
 
 case "$CMD" in
    configure)
-      configure "$@"   # Expands to separate params even in quotes. http://www.gnu.org/software/bash/manual/bash.html#Special-Parameters
+      DIRECTORY="$1"
+      configure
       ;;
-      
-   install)
-      install "$@"
+  
+   "")
+      showusage
+      if [ -d $DRETCDIR ]; then retrieveDIRECTORY ; showservices ; fi
+      exit 0
       ;;
-      
-   destroy)
-      destroy "$@"
-      ;;
-      
+
    clean)
       # not including -v /etc:/etc since we aren't using exclude files.
       docker run --rm -v /var/run/docker.sock:/var/run/docker.sock spotify/docker-gc
       ;;
-
-   "")
-      showusage
+          
+   install)
+      IMAGENAME="$1"
+      SERVICENAME="$2"
+      retrieveDIRECTORY
+      DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
+      install
       ;;
+      
+   #--------------------------         
+      
+   destroy)
+      SERVICENAME="$1" ; shift
+      setglobals
+      destroy 
+      ;;
+      
    
    *)
       # check if CMD matches a service. If so run the appropriate script.
-      if [ -d $DRETCDIR ]; then
-         retrieveDIRECTORY
-         PDIR="${DIRECTORY}/${CMD}"
-         if [ -d "${PDIR}" ]; then
-            retrieveCONTAINERNAME "${PDIR}"
-            SUBCMD="$1"
-            shift
-            FULLCMD="${PDIR}/bin/${SUBCMD}"
-            if [ -n "$SUBCMD" ] && [ -e "${FULLCMD}" ]; then
-               bash "${FULLCMD}" "${CMD}" "${CONTAINERNAME}" "$@"
-               exit $?
-            else
-               if [ -e "${PDIR}/bin/help" ]; then
-                  bash "${PDIR}/bin/help" "${CMD}" "${CONTAINERNAME}"
-               else
-                  echo "${CMD} does not provide any help."
-               fi
-               exit $?
-            fi
-         fi
+      # format:   dr SERVICENAME COMMAND ARGS
+      SERVICENAME="$CMD"
+      setglobals
+      
+      SUBCOMMAND="$1" ; shift
+      SCRIPTTORUN="${DIRSERVICE}/host/${SUBCOMMAND}"
+      if [ -n "$SUBCOMMAND" ] && [ -e "${SCRIPTTORUN}" ]; then
+         bash "${SCRIPTTORUN}" "${SERVICENAME}" "${IMAGENAME}" "$@"
+      else
+         bash "${DIRSERVICE}/host/help" "${SERVICENAME}" "${IMAGENAME}"
       fi
-            
-      # otherwise show usage.
-      showservices
       ;;
 esac
 
