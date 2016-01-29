@@ -61,6 +61,7 @@ NAME
    
 SYNOPSIS
    dr configure DIRECTORY
+   dr clean
    
    dr install CONTAINERNAME SERVICENAME
    dr destroy SERVICENAME
@@ -110,11 +111,11 @@ function install {
 
    # Check mandatory files in container before touching host. Is it a dr container?
    local REQDCFILES=("drinstall" "drdestroy")
-   for HFILE in "${REQDCFILES[@]}"; do
+   for CFILE in "${REQDCFILES[@]}"; do
       docker run --rm -it ${CONTAINERNAME} /bin/bash -c "command -v /usr/local/bin/$CFILE >/dev/null 2>&1"
-      if [ $? -ne 0 ]; then echo "Install failed - ${CONTAINERNAME} is not Docker Runner compatible. ${CFILE} missing.">&2 ; exit 1 ; fi
+      if [ $? -ne 0 ]; then echo "Install failed - ${CONTAINERNAME} is not Docker Runner compatible. Required script ${CFILE} is missing.">&2 ; exit 1 ; fi
    done
-      if [ $? -ne 0 ]; then echo "Install failed - ${CONTAINERNAME} is not Docker Runner compatible. ${CFILE} missing.">&2 ; exit 1 ; fi
+      if [ $? -ne 0 ]; then echo "Install failed - ${CONTAINERNAME} is not Docker Runner compatible. Required script ${CFILE} is missing.">&2 ; exit 1 ; fi
    
    # Check running as druser.
    USERID=$(docker run --rm -it ${CONTAINERNAME} /bin/bash -c "id -u")
@@ -210,6 +211,11 @@ case "$CMD" in
       
    destroy)
       destroy "$@"
+      ;;
+      
+   clean)
+      # not including -v /etc:/etc since we aren't using exclude files.
+      docker run --rm -v /var/run/docker.sock:/var/run/docker.sock spotify/docker-gc
       ;;
 
    "")
