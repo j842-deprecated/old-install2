@@ -107,6 +107,18 @@ function install {
    
    if [ -z $CONTAINERNAME ]; then echo "dr install requires CONTAINERNAME.">&2 ; exit 1 ; fi
    if [ -z $SERVICENAME ]; then echo "dr install requires SERVICENAME.">&2 ; exit 1 ; fi
+
+   # Check mandatory files in container before touching host. Is it a dr container?
+   local REQDCFILES=("drinstall" "drdestroy")
+   for HFILE in "${REQDCFILES[@]}"; do
+      docker run --rm -it ${CONTAINERNAME} /bin/bash -c "command -v /usr/local/bin/$CFILE >/dev/null 2>&1"
+      if [ $? -ne 0 ]; then echo "Install failed - ${CONTAINERNAME} is not Docker Runner compatible. ${CFILE} missing.">&2 ; exit 1 ; fi
+   done
+      if [ $? -ne 0 ]; then echo "Install failed - ${CONTAINERNAME} is not Docker Runner compatible. ${CFILE} missing.">&2 ; exit 1 ; fi
+   
+   # Check running as druser.
+   USERID=$(docker run --rm -it ${CONTAINERNAME} /bin/bash -c "id -u")
+   if [ "$USERID" -ne "22022" ]; then echo "Install failed - ${CONTAINERNAME} is not Docker Runner compatible. Not running as druser (uid 22022).">&2 ; exit 1 ; fi
    
    DNAME="dr-install"
    retrieveDIRECTORY
@@ -131,9 +143,11 @@ function install {
       RVALI=1
    fi
    
-   # TODO Check other mandatory files!
-   
-   # TODO Check running as correct user (druser).
+   # Check mandatory files on host.
+   local REQDHOSTFILES=("txt/shorthelp.txt" "bin/hostinstall" "bin/hostdestroy" "bin/help")
+   for HFILE in "${REQDHOSTFILES[@]}"; do
+      if [ ! -e "${DIRSERVICE}/${HFILE}"; then echo "Install failed - ${HFILE} is required" ; RVALI=1 ; fi
+   done
    
    if [ $RVALI -ne 0 ]; then
       destroy ${SERVICENAME}
