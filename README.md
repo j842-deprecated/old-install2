@@ -31,23 +31,22 @@ Install a container (e.g. from DockerHub) that supports dr and call the service 
     dr install CONTAINERNAME SERVICENAME
 ```
 
-Get help on the service:
-```
-    dr SERVICENAME
-```
-
 Manage that service:
 ```
     dr SERVICENAME COMMAND ARGS
 ```
-Typically service commands include run and configure.
+The available COMMANDs depend on the service; they can be things like run and configure. You can get help on the service
+which also lists the available COMMANDs with
+```
+    dr SERVICENAME
+```
 
 Destroy the service, including destroying all stored data, leaving the host in a clean state:
 ```
     dr destroy SERVICENAME
 ``` 
 
-Other commands:
+Other always available commands:
 ```
 dr backup SERVICENAME BACKUPFILE
 dr restore SERVICENAME BACKUPFILE
