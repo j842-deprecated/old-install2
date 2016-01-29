@@ -8,11 +8,12 @@ or deal with long docker run commands.
 
 With Docker Runner each docker image has the ability to configure the host appropriately, meaning that you can use
 simple discoverable commands (no manual needed) to use any compatible service. This configuration is flexible, with
-any options or custom configuration persisted within a docker volume container that can be managed for you. It also
-supports destroying the service, removing any stored data and leaving the host clean.
+any options or custom service configuration persisted within a docker volume container for that service 
+that can be managed for you. It also supports destroying the service, removing any stored data and configuration and
+leaving the host clean.
 
-You can install one docker image as multiple different services with different configuration options, e.g.
-to run multiple minecraft servers on different ports.
+You can trivially install one docker image as multiple different services with different configuration options, 
+e.g. to run multiple minecraft servers on different ports.
 
 Docker Runner tries to be Ansible friendly for automation (see [Exit Codes](https://github.com/j842/dr#exit-codes) below).
 
@@ -28,10 +29,16 @@ Install a container (e.g. from DockerHub) that supports dr and call the service 
     dr install CONTAINERNAME SERVICENAME
 ```
 
+Get help on the service:
+```
+    dr SERVICENAME
+```
+
 Manage that service:
 ```
     dr SERVICENAME COMMAND ARGS
 ```
+Typically service commands include run and configure.
 
 Destroy the service, including destroying all stored data, leaving the host in a clean state:
 ```
