@@ -1,3 +1,5 @@
+# CURRENTLY UNDER DEVELOPMENT AND BROKEN! (30 Jan 2016)
+
 # Docker Runner
 
 Docker Runner (dr) is a script and a set of conventions to make it easy to install, 
@@ -97,29 +99,23 @@ For an example see: https://github.com/j842/docker-dr-helloworld
 ## User
 
 dr creates druser with uid 22022 and drgroup with gid 22022 on the host when install is run.
-dr expects the Dockerfile to create that user and group and have a USER command to switch to it.
+dr requires the Dockerfile to create that user and group and have a USER command to switch to it.
+It must also expose /dr/config as a Volume. A Docker volume container is always created by dr as
+SERVICENAME-dr-standardconfig and mounted in /dr/config.
 
 ## Files Required
 
-The container image must include the drinstall script
-```
-/usr/local/bin/drinstall SERVICENAME IMAGE      -- populates /dr with everything below.
-/usr/local/bin/drdestroy SERVICENAME IMAGE      -- destroy anything that needs to be done within container.
-```
-When dr install is invoked on the host:
-* the service's directory on the host is mapped to /dr in the container,
-* the container is started and the drinstall script is run inside the container.
+The container image must include a path /dr containing:
 
-drinstall then neads to create the following help file:
 ```
 /dr/txt/shorthelp.txt                           -- shown when dr is run with no args
 ```
 
 and the following mandatory scripts that can be run on the host:
 ```
-/dr/bin/hostinstall SERVICENAME IMAGE  -- automatically run on host when installed (after drinstall)
-/dr/bin/hostdestroy SERVICENAME IMAGE  -- automatically run on host when destroyed (after drdestroy)
-/dr/bin/help SERVICENAME IMAGE         -- show help for commands available
+/dr/host/install SERVICENAME IMAGE  -- automatically run on host when installed
+/dr/host/destroy SERVICENAME IMAGE  -- automatically run on host when destroyed
+/dr/host/help SERVICENAME IMAGE     -- show help for commands available
 ```
 
 Note that on install the order is:
