@@ -20,7 +20,7 @@ Configure sets up dr's main directory for storing services. Only needs to be cal
     dr configure DIRECTORY
 ```
 
-Install a container from DockerHub that supports dr and call the service 'SERVICENAME'.
+Install a container (e.g. from DockerHub) that supports dr and call the service 'SERVICENAME'.
 ```
     dr install CONTAINERNAME SERVICENAME
 ```
