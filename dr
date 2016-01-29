@@ -4,6 +4,9 @@
 #
 #  dr : docker runner
 #  manage docker containers in a simple and consistent way.
+#  
+#  See:
+#    https://github.com/j842/dr
 #
 # ------------------------------------------------------------------
 
@@ -19,9 +22,11 @@ function retrieveDIRECTORY {
    if [ -z "$DIRECTORY" ]; then echo "Run configure before other commands.">&2 ; exit 1 ; fi
 }
 
+# retrieveCONTAINERNAME SERVICE
 function retrieveCONTAINERNAME {
-   SERVICE="$1"
-   CONTAINERNAME=$(<"${SERVICE}/txt/${IMAGENAMETXT}")
+   local SERVICEDIR="$1"
+   if [ ! -d ${SERVICEDIR} ]; then echo "Error - no such directory: ${SERVICEDIR}.">&2 ; exit 1 ; fi
+   CONTAINERNAME=$(<"${SERVICEDIR}/txt/${IMAGENAMETXT}")
    if [ -z "$CONTAINERNAME" ]; then echo "Error - can't read ${IMAGENAMETXT}.">&2 ; exit 1 ; fi
 }
 
@@ -56,7 +61,10 @@ NAME
    
 SYNOPSIS
    dr configure DIRECTORY
+   
    dr install CONTAINERNAME SERVICENAME
+   dr destroy SERVICENAME
+   
    dr SERVICENAME COMMAND ARGS
 
 DESCRIPTION
@@ -91,33 +99,85 @@ function configure {
 }
 
 
-# install CONTAINERNAME
+# install CONTAINERNAME SERVICENAME
 function install {
    CONTAINERNAME="$1"
    SERVICENAME="$2"
+   local RVALI=0
    
    if [ -z $CONTAINERNAME ]; then echo "dr install requires CONTAINERNAME.">&2 ; exit 1 ; fi
    if [ -z $SERVICENAME ]; then echo "dr install requires SERVICENAME.">&2 ; exit 1 ; fi
    
    DNAME="dr-install"
    retrieveDIRECTORY
-   
    DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
+
    mkdir -p "${DIRSERVICE}/txt"
    mkdir -p "${DIRSERVICE}/bin"
    echo "${CONTAINERNAME}" > "${DIRSERVICE}/txt/${IMAGENAMETXT}"
    echo "${SERVICENAME}" > "${DIRSERVICE}/txt/servicename.txt" 
    chown -R "${DRUSER}:${DRGROUP}" "${DIRSERVICE}"
 
-   # assumes docker image uses cmd but not entrypoint. Could instead override entrypoint maybe.
+   # assumes docker image does not use entrypoint. Could instead override entrypoint maybe.
    docker run --rm -i -t --name="$DNAME" -h "${HOSTNAME}" \
                -v ${DIRSERVICE}:/dr ${CONTAINERNAME} /usr/local/bin/drinstall ${SERVICENAME} ${CONTAINERNAME}
+   if [ $? -ne 0 ]; then RVALI=1 ; echo "Failed to run drinstall.">&2 ; fi  
       
    # if the install process created an init script then run it, e.g. to create volume containers.
    # todo: tidy up return/exit codes!         
-   if [ -e "${DIRSERVICE}/bin/hostinit" ]; then
-      bash "${DIRSERVICE}/bin/hostinit" "${SERVICENAME}" "${CONTAINERNAME}"
+   if [ -e "${DIRSERVICE}/bin/hostinstall" ]; then
+      bash "${DIRSERVICE}/bin/hostinstall" "${SERVICENAME}" "${CONTAINERNAME}"
+   else
+      RVALI=1
    fi
+   
+   # TODO Check other mandatory files!
+   
+   # TODO Check running as correct user (druser).
+   
+   if [ $RVALI -ne 0 ]; then
+      destroy ${SERVICENAME}
+   fi
+
+   exit $RVALI
+}
+
+# destroy SERVICENAME
+function destroy {
+   SERVICENAME="$1"
+     
+   if [ -z $SERVICENAME ]; then echo "dr destroy requires SERVICENAME.">&2 ; exit 1 ; fi
+
+   # Set DIRECTORY
+   retrieveDIRECTORY   
+
+   local RVALD=0
+   local DNAME="dr-destroy"
+   local DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
+   
+   # we require the service directory to be present.
+   if [ ! -d "$DIRSERVICE" ]; then echo "The service ${SERVICENAME} does not exist.">&2 ; showservices ; exit 1 ; fi
+   
+   # Set CONTAINERNAME
+   retrieveCONTAINERNAME "$DIRSERVICE"
+   
+   # assumes docker image does not use entrypoint. Could instead override entrypoint maybe.
+   docker run --rm -i -t --name="$DNAME" -h "${HOSTNAME}" \
+               -v ${DIRSERVICE}:/dr ${CONTAINERNAME} /usr/local/bin/drdestroy ${SERVICENAME} ${CONTAINERNAME}
+   if [ $? -ne 0 ]; then RVALD=1 ; echo "Failed to run drdestroy.">&2 ; fi  
+   
+   # if the install process created a destroy script then run it, e.g. to destroy volume containers.
+   # todo: tidy up return/exit codes!         
+   if [ -e "${DIRSERVICE}/bin/hostdestroy" ]; then
+      bash "${DIRSERVICE}/bin/hostdestroy" "${SERVICENAME}" "${CONTAINERNAME}"
+   else 
+      RVALD=1
+   fi      
+   
+   # clean up service directory.
+   rm -r "${DIRSERVICE}"
+   
+   exit $RVALD
 }
 
 #------------------------------------------------------------------------------------
@@ -132,6 +192,10 @@ case "$CMD" in
       
    install)
       install "$@"
+      ;;
+      
+   destroy)
+      destroy "$@"
       ;;
 
    "")
