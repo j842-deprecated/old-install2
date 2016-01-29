@@ -47,6 +47,15 @@ Destroy the service, including destroying all stored data, leaving the host in a
     dr destroy SERVICENAME
 ``` 
 
+Other commands:
+```
+dr backup SERVICENAME BACKUPFILE
+dr restore SERVICENAME BACKUPFILE
+dr shell SERVICENAME
+```
+   
+
+
 ## Example
 
 ### First time installation
@@ -100,8 +109,14 @@ For an example see: https://github.com/j842/docker-dr-helloworld
 
 dr creates druser with uid 22022 and drgroup with gid 22022 on the host when install is run.
 dr requires the Dockerfile to create that user and group and have a USER command to switch to it.
-It must also expose /dr/config as a Volume. A Docker volume container is always created by dr as
-SERVICENAME-dr-standardconfig and mounted in /dr/config.
+
+## Standard Configuration Volume
+
+The container must expose /dr/config as a Volume. A Docker volume container is always created by dr as
+SERVICENAME-dr-standardconfig and mounted in /dr/config. 
+
+## Backup/Restore 
+Backup and restore of the standard configuration volume is managed by dr, the backup/restore scripts in /dr/host handle any other volume containers needed.
 
 ## Files Required
 
@@ -113,26 +128,18 @@ The container image must include a path /dr containing:
 
 and the following mandatory scripts that can be run on the host:
 ```
-/dr/host/install SERVICENAME IMAGE  -- automatically run on host when installed
-/dr/host/destroy SERVICENAME IMAGE  -- automatically run on host when destroyed
-/dr/host/help SERVICENAME IMAGE     -- show help for commands available
+/dr/host/install SERVICENAME IMAGE        -- automatically run on host when installed
+/dr/host/destroy SERVICENAME IMAGE        -- automatically run on host when destroyed
+/dr/host/backup SERVICENAME IMAGE PATH    -- backup to files in PATH
+/dr/host/restore SERVICENAME IMAGE PATH   -- restore from files in PATH
+/dr/host/help SERVICENAME IMAGE           -- show help for commands available
 ```
-
-Note that on install the order is:
-* SERVICENAME folder created and /txt and /bin within that.
-* drinstall called in the container (installs the scripts to /dr as above)
-* hostinstall called on host (often creates volume containers)
-
-And on destruction the order is:
-* drdestroy called in container (usually doesn't do anything)
-* hostdestroy called on host (often destroys volume containers)
-* the SERVICENAME folder is deleted by dr
 
 ### Additional commands
 
 You can also add any other command that would be useful, e.g. run, configure etc.
 ```
-/dr/bin/ANOTHERCMD SERVICENAME IMAGE [ARGS...]  -- any other command needed.
+/dr/host/ANOTHERCMD SERVICENAME IMAGE [ARGS...]  -- any other command needed.
 ```
 
 Those commands are invoked from the host with
@@ -143,8 +150,8 @@ dr SERVICENAME ANOTHERCMD [ARGS...]
 ## Files automatically added by dr which are available within the container
 
 ```
-/dr/txt/imagename.txt                  -- e.g. j842/simplesecrets
-/dr/txt/servicename.txt                -- e.g. simplesecrets
+/dr/config/imagename.txt                  -- e.g. j842/simplesecrets
+/dr/config/servicename.txt                -- e.g. simplesecrets
 ```
 
 ## Exit Codes
