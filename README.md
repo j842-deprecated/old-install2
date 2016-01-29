@@ -11,6 +11,9 @@ simple discoverable commands (no manual needed) to use any compatible service. T
 any options or custom configuration persisted within a docker volume container that can be managed for you. It also
 supports destroying the service, removing any stored data and leaving the host clean.
 
+You can install one docker image as multiple different services with different configuration options, e.g.
+to run multiple minecraft servers on different ports.
+
 Docker Runner tries to be Ansible friendly for automation (see [Exit Codes](https://github.com/j842/dr#exit-codes) below).
 
 # Basic Use
