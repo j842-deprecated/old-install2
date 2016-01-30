@@ -27,13 +27,17 @@ Features:
 
 Install dr on the host:
 ```
-    wget https://raw.githubusercontent.com/j842/dr/master/dr ; chmod a+x dr
-    mv dr /usr/local/bin
+    wget https://raw.githubusercontent.com/j842/dr/master/dr ; chmod a+x dr ; mv dr /usr/local/bin
 ```
 
 Configure dr:
 ```
     dr configure /opt/dr
+```
+
+If you don't have docker you can install it on Debian with:
+```
+   wget -nv -O /tmp/install_docker.sh https://raw.github.com/j842/scripts/master/install_docker.sh ; bash install_docker.sh
 ```
 
 Now you're ready to try things.
