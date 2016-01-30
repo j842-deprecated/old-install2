@@ -111,8 +111,8 @@ dr requires the Dockerfile to create that user and group and have a USER command
 
 ## Standard Configuration Volume
 
-The container must expose /dr/config as a Volume. A Docker volume container is always created by dr as
-SERVICENAME-dr-standardconfig and mounted in /dr/config. 
+The container must expose /config as a Volume. A Docker volume container is always created by dr as
+SERVICENAME-dr-standardconfig and mounted in /config. 
 
 ## Backup/Restore 
 You can backup and restore services. The backup is generally fully self contained, so can be restored to a different host!
