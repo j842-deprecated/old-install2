@@ -45,8 +45,8 @@ function showservices {
          serviceline "${SERVICEPATH##*/}" "$SHORTHELP"
       else
          if [ -e "${SERVICEPATH}/${CFG_IMAGENAME}" ]; then ***
-            CONTAINERNAME=$(<"$SERVICEPATH/${CFG_IMAGENAME}")
-            serviceline "${SERVICEPATH##*/}" "$IMAGENAME"
+            SERVICEIMAGENAME=$(<"$SERVICEPATH/${CFG_IMAGENAME}")
+            serviceline "${SERVICEPATH##*/}" "$SERVICEIMAGENAME"
          fi
       fi
    done
@@ -112,8 +112,9 @@ function checkimage {
    
    # Check running as druser.
    USERID=$(docker run --rm -it ${IMAGENAME} /bin/bash -c "id -u | tr -d '\r\n'")
-   echo "[[${USERID}]]" ; echo " "
    if [ "$USERID" != "22022" ]; then echo "${IMAGENAME} is not Docker Runner compatible. Not running as druser (uid 22022). It's >>$USERID<<">&2 ; exit 1 ; fi   
+   
+   echo "${IMAGENAME} is dr compatible.">&2
 }
 
 # install
@@ -128,15 +129,19 @@ function install {
    local DNAME="dr-install"
 
    # --- all four globals now set.
+   echo "DIRSERVICE=${DIRSERVICE}"
 
-   mkdir -p "${DIRSERVICE}/cfg"
+   mkdir -p "${DIRSERVICE}/${DRCFGDIR}"
+   mkdir -p "${DIRSERVICE}/host"
+   mkdir -p "${DIRSERVICE}/txt"
+   chown -R druser:drgroup "${DIRSERVICE}"
 
    # assumes docker image does not use entrypoint. Could instead override entrypoint maybe.
    docker run --rm -i -t --name="$DNAME" -h "${HOSTNAME}" \
-               -v ${DIRSERVICE}:/tempcopy ${CONTAINERNAME} cp -a /dr/host /tempcopy && cp -a /dr/txt /tempcopy
-   if [ $? -ne 0 ]; then RVALI=1 ; echo "Failed to run drinstall.">&2 ; fi  
+               -v ${DIRSERVICE}:/tempcopy ${IMAGENAME} /bin/bash -c "cp -a /dr/host /tempcopy && cp -a /dr/txt /tempcopy"
+   if [ $? -ne 0 ]; then RVALI=1 ; echo "Failed to copy files.">&2 ; fi  
 
-   echo "${CONTAINERNAME}" > "${DIRSERVICE}/${CFG_IMAGENAME}"
+   echo "${IMAGENAME}" > "${DIRSERVICE}/${CFG_IMAGENAME}"
    echo "${SERVICENAME}" > "${DIRSERVICE}/${CFG_SERVICENAME}" 
    chown -R "${DRUSER}:${DRGROUP}" "${DIRSERVICE}"
    
@@ -190,6 +195,7 @@ function retrieveDIRECTORY {
    if [ ! -d "$DRETCDIR" ]; then echo "$DIRERR">&2 ; exit 1 ; fi
    DIRECTORY=$(<"${CFG_DIRECTORY}")
    if [ -z "$DIRECTORY" ]; then echo "$DIRERR">&2 ; exit 1 ; fi
+   if [ ! -d "$DIRECTORY" ]; then echo "$DIRERR">&2 ; exit 1 ; fi
 }
 
 # setglobals
@@ -201,8 +207,9 @@ function setglobals {
    DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
    if [ ! -d "$DIRSERVICE" ]; then echo "The service ${SERVICENAME} does not exist.">&2 ; showservices ; exit 1 ; fi
 
-   IMAGENAME=$(<"${SERVICEDIR}/${CFG_IMAGENAME}") ***
-   if [ -z "$IMAGENAME" ]; then echo "Error - can't read ${CFG_IMAGENAME}.">&2 ; exit 1 ; fi
+   if [ ! -e "${DIRSERVICE}/${CFG_IMAGENAME}" ]; then echo "Error - ${CFG_IMAGENAME} doesn't exist.">&2 ; exit 1 ; fi
+   IMAGENAME=$(<"${DIRSERVICE}/${CFG_IMAGENAME}")
+   if [ -z "$IMAGENAME" ]; then echo "Error - ${CFG_IMAGENAME} is empty.">&2 ; exit 1 ; fi
 }
 
 #------------------------------------------------------------------------------------
