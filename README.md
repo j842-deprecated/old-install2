@@ -45,7 +45,7 @@ Now you're ready to try things.
 Install and try the [helloworld](https://github.com/j842/docker-dr-helloworld) example:
 ```
     dr install j842/dr-helloworld helloworld
-    dr helloworld run
+    helloworld run
 ```
 
 #### SimpleSecrets
@@ -53,13 +53,12 @@ Install and try the [helloworld](https://github.com/j842/docker-dr-helloworld) e
 Install and configure [simplesecrets](https://github.com/j842/docker-simplesecrets):
 ```
     dr install j842/simplesecrets simplesecrets
-    dr simplesecrets help
-    S3KEY=abcde S3SECRET=1234 BUCKET=mybucket dr simplesecrets configure
+    S3KEY=abcde S3SECRET=1234 BUCKET=mybucket simplesecrets configure
 ```
     
 Store secrets in S3:
 ```
-    dr simplesecrets < myfile
+    simplesecrets < myfile
 ```
 
 ## General Use
@@ -76,25 +75,20 @@ Install a container (e.g. from DockerHub) that supports dr and call the service 
 
 Manage that service:
 ```
-    dr SERVICENAME COMMAND ARGS
+    SERVICENAME COMMAND ARGS
 ```
 The available COMMANDs depend on the service; they can be things like run and configure. You can get help on the service
 which also lists the available COMMANDs with
 ```
-    dr SERVICENAME
+    SERVICENAME
 ```
-
-Destroy the service, including destroying all stored data, leaving the host in a clean state:
-```
-    dr destroy SERVICENAME
-``` 
 
 Other commands that work on all services:
 ```
 dr backup SERVICENAME BACKUPFILE     -- backup
 dr restore SERVICENAME BACKUPFILE    -- restore (destructive, no confirmation! always backup first)
-dr shell SERVICENAME                 -- shell access to container
 dr update SERVICENAME                -- update service scripts from container (e.g. after docker pull)
+dr destroy SERVICENAME               -- destroy service and ALL data! Leaves host in clean state.
 ```
    
 
@@ -116,7 +110,8 @@ dr-SERVICENAME-config and mounted in /config with option:
 ```
 -v "dr-${SERVICENAME}-config:/config" 
 ```
-This option needs to be in any scripts in /dr/host that launch the container.
+This option needs to be in any scripts in /dr/host that launch the container. It is automatically
+included in backup and restore operations.
 
 ## Backup/Restore 
 You can backup and restore services. The backup is generally fully self contained, so can be restored to a different host!
@@ -133,6 +128,7 @@ The container image must include a path /dr containing the following scripts tha
 /dr/help SERVICENAME IMAGE           -- show help for commands available
 /dr/backup SERVICENAME IMAGE PATH    -- backup to files in PATH
 /dr/restore SERVICENAME IMAGE PATH   -- restore from files in PATH
+/dr/bash SERVICENAME IMAGE           -- get bash shell in container
 ```
 
 ### Additional commands

@@ -19,7 +19,7 @@ readonly DRBINDIR="bin"
 readonly CFG_DIRECTORY="${DRETCDIR}/directory"
 readonly CFG_IMAGENAME="${DRCFGDIR}/imagename.txt"
 readonly CFG_SERVICENAME="${DRCFGDIR}/servicename.txt"
-readonly REQDFILES=("install" "destroy" "backup" "restore" "help" )
+readonly REQDFILES=("install" "destroy" "backup" "restore" "help" "enter" )
    
 # Global variables
 SERVICENAME=""
@@ -41,14 +41,9 @@ function showservices {
    if [ -z $DIRECTORY ]; then echo "Main directory not set - can't show services." ; exit 1 ; fi
    echo "AVAILABLE SERVICES"
    find "$DIRECTORY" -maxdepth 1 -type d | while read SERVICEPATH; do 
-      if [ -e "$SERVICEPATH/txt/shorthelp.txt" ]; then
-         SHORTHELP=$(<"$SERVICEPATH/txt/shorthelp.txt")
-         serviceline "${SERVICEPATH##*/}" "$SHORTHELP"
-      else
-         if [ -e "${SERVICEPATH}/${CFG_IMAGENAME}" ]; then ***
-            SERVICEIMAGENAME=$(<"$SERVICEPATH/${CFG_IMAGENAME}")
-            serviceline "${SERVICEPATH##*/}" "$SERVICEIMAGENAME"
-         fi
+      if [ -e "${SERVICEPATH}/${CFG_IMAGENAME}" ]; then
+         SERVICEIMAGENAME=$(<"$SERVICEPATH/${CFG_IMAGENAME}")
+         serviceline "${SERVICEPATH##*/}" "$SERVICEIMAGENAME"
       fi
    done
 }
@@ -63,13 +58,14 @@ SYNOPSIS
    dr configure DIRECTORY
    dr clean
    
-   dr install IMAGENAME SERVICENAME
+   dr install IMAGENAME SERVICENAME   
+   dr update SERVICENAME
    dr backup SERVICENAME BACKUPFILE
    dr restore SERVICENAME BACKUPFILE
    dr destroy SERVICENAME
-   dr shell SERVICENAME
    
    dr SERVICENAME
+   dr SERVICENAME shell
    dr SERVICENAME COMMAND ARGS
 
 DESCRIPTION
@@ -108,7 +104,7 @@ function checkimage {
    # Check mandatory files in image (global var IMAGENAME) before touching host. Is it a valid dr container?
    for CFILE in "${REQDFILES[@]}"; do
       docker run --rm -it ${IMAGENAME} /bin/bash -c "command -v /dr/$CFILE >/dev/null 2>&1"
-      if [ "$?" -ne 0 ]; then echo "${IMAGENAME} is not Docker Runner compatible. The script ${CFILE} is missing.">&2 ; exit 1 ; fi
+      if [ "$?" -ne 0 ]; then echo "${IMAGENAME} is not Docker Runner compatible. The script /dr/${CFILE} is missing.">&2 ; exit 1 ; fi
    done
    
    # Check running as druser.
@@ -116,6 +112,16 @@ function checkimage {
    if [ "$USERID" != "22022" ]; then echo "${IMAGENAME} is not Docker Runner compatible. Not running as druser (uid 22022). It's >>$USERID<<">&2 ; exit 1 ; fi   
    
    echo "${IMAGENAME} is dr compatible.">&2
+}
+
+# createlaunchscript
+function createlaunchscript {
+   local SCRIPTPATH="/usr/local/bin/${SERVICENAME}"
+   cat <<EOF >"$SCRIPTPATH"
+#!/bin/bash
+dr ${SERVICENAME} "\$@"
+EOF
+   chmod a+x "$SCRIPTPATH"
 }
 
 # install
@@ -153,11 +159,19 @@ function install {
       if [ ! -e "${DIRSERVICE}/${DRBINDIR}/${HFILE}" ]; then echo "Install failed - ${HFILE} is required" ; RVALI=1 ; fi
    done
    
+   # create the standard config volume container.
+   docker volume create --name="dr-${SERVICENAME}-config"
+   # set permissions on config volume
+   docker run --name="$DNAME" -v "dr-${SERVICENAME}-config:/config" j842/dr-baseimage-alpine /bin/bash -c "chown druser:drgroup /config && date >> /config/install_date"
+   docker rm "$DNAME"
+    
    # Run the install script, e.g. to create volume containers.
    # todo: tidy up return/exit codes!         
    if [ "$RVALI" -eq 0 ]; then
       bash "${DIRSERVICE}/${DRBINDIR}/install" "${SERVICENAME}" "${IMAGENAME}"
    fi   
+   
+   if [ "$RVALI" -eq 0 ]; then createlaunchscript ; fi
    
    # If we had errors then destroy everything!
    if [ "$RVALI" -ne 0 ]; then
@@ -182,6 +196,12 @@ function destroy {
    else 
       RVALD=1
    fi      
+   
+   # remove volume container.
+   docker volume rm --name="dr-${SERVICENAME}-config"
+   
+   # remove launch script
+   if [ -e "/usr/local/bin/${SERVICENAME}" ]; then rm "/usr/local/bin/${SERVICENAME}" ; fi
    
    # clean up service directory.
    rm -r "${DIRSERVICE}"
