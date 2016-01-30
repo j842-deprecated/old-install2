@@ -211,7 +211,7 @@ function destroy {
    fi      
    
    # remove volume container.
-   docker volume rm --name="dr-${SERVICENAME}-config"
+   docker volume rm "dr-${SERVICENAME}-config" >/dev/null 2>&1
    
    # remove launch script
    if [ -e "/usr/local/bin/${SERVICENAME}" ]; then rm "/usr/local/bin/${SERVICENAME}" ; fi
