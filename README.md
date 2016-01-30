@@ -116,6 +116,9 @@ The container must expose /dr/config as a Volume. A Docker volume container is a
 SERVICENAME-dr-standardconfig and mounted in /dr/config. 
 
 ## Backup/Restore 
+You can backup and restore services. The backup is generally fully self contained, so can be restored to a different host!
+(There may be external resources needed by the service, but for many its got everything. See the specific container for what it supports.).
+
 Backup and restore of the standard configuration volume is managed by dr, the backup/restore scripts in /dr/host handle any other volume containers needed.
 
 ## Files Required
@@ -130,9 +133,9 @@ and the following mandatory scripts that can be run on the host:
 ```
 /dr/host/install SERVICENAME IMAGE        -- automatically run on host when installed
 /dr/host/destroy SERVICENAME IMAGE        -- automatically run on host when destroyed
+/dr/host/help SERVICENAME IMAGE           -- show help for commands available
 /dr/host/backup SERVICENAME IMAGE PATH    -- backup to files in PATH
 /dr/host/restore SERVICENAME IMAGE PATH   -- restore from files in PATH
-/dr/host/help SERVICENAME IMAGE           -- show help for commands available
 ```
 
 ### Additional commands

@@ -241,6 +241,18 @@ case "$CMD" in
       install
       ;;
       
+   # dr backup SERVICENAME BACKUPFILE
+   backup)
+      SERVICENAME="$1"
+      setglobals
+      ;;
+     
+   # dr restore SERVICENAME BACKUPFILE
+   restore)
+      SERVICENAME="$1"
+      retrieveDIRECTORY
+      ;;
+      
    #--------------------------         
       
    destroy)
