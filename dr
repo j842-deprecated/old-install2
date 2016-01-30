@@ -173,7 +173,7 @@ function install {
    done
    
    # create the standard config volume container.
-   docker volume create --name="dr-${SERVICENAME}-config"
+   docker volume create --name="dr-${SERVICENAME}-config" >/dev/null
    # set permissions on config volume
    docker run --name="$DNAME" -v "dr-${SERVICENAME}-config:/config" j842/dr-baseimage-alpine /bin/bash -c "chown druser:drgroup /config && date >> /config/install_date"
    docker rm "$DNAME" >/dev/null 2>&1
@@ -211,7 +211,7 @@ function destroy {
    fi      
    
    # remove volume container.
-   docker volume rm "dr-${SERVICENAME}-config" >/dev/null 2>&1
+   docker volume rm "dr-${SERVICENAME}-config" >/dev/null
    
    # remove launch script
    if [ -e "/usr/local/bin/${SERVICENAME}" ]; then rm "/usr/local/bin/${SERVICENAME}" ; fi
