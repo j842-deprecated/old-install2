@@ -37,7 +37,7 @@ Configure dr:
 
 If you don't have docker you can install it on Debian with:
 ```
-   wget -nv -O /tmp/install_docker.sh https://raw.github.com/j842/scripts/master/install_docker.sh ; bash install_docker.sh
+   wget -nv -O /tmp/install_docker.sh https://raw.github.com/j842/scripts/master/install_docker.sh ; bash /tmp/install_docker.sh
 ```
 
 Now you're ready to try things.
