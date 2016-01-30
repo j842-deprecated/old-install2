@@ -23,6 +23,9 @@ readonly CFG_IMAGENAME="${DRCFGDIR}/imagename.txt"
 readonly CFG_SERVICENAME="${DRCFGDIR}/servicename.txt"
 readonly REQDFILES=("install" "destroy" "backup" "restore" "help" "enter" )
 readonly COPYIMAGE="j842/dr-baseimage-alpine"
+readonly BACKUP_HOSTZIP="config_host.tar.7z"
+readonly BACKUP_VOLZIP="config_volume_container.tar.7z"
+readonly BACKUP_MAIN="backup.tar.7z"
    
 # Global variables
 SERVICENAME=""
@@ -147,7 +150,16 @@ EOF
 
 #------------------------------------------------------------------------------------
 
-function copydrfiles {
+# initdrservice
+function initdirservice {
+   # can only call when service directory not present (for safety)
+   if [ -d ${DIRSERVICE} ]; then
+      echo "A service is already installed at ${DIRSERVICE}. Initialisation cancelled.">&2
+      echo "You might want   dr update ${SERVICENAME}  instead.">&2
+      exit 1
+   fi
+
+   # the directory that the container will update.
    local UPDATEDIR="${DIRSERVICE}/${DRBINDIR}"
    if [ -d "${UPDATEDIR}" ]; then
       rm -r "${UPDATEDIR}"
@@ -156,20 +168,32 @@ function copydrfiles {
    chown -R "${DRUSER}:${DRGROUP}" "${UPDATEDIR}"
    
    # assumes docker image does not use entrypoint. Could instead override entrypoint maybe.
-   docker run --rm -it -v ${UPDATEDIR}:/tempcopy ${IMAGENAME} /bin/bash -c "cp -a /dr/* /tempcopy/"        
-                       
+   docker run --rm -it -v ${UPDATEDIR}:/tempcopy ${IMAGENAME} /bin/bash -c "cp -a /dr/* /tempcopy/"                             
    if [ $? -ne 0 ]; then 
       echo "Failed to copy files.">&2 
-      rm -r "${UPDATEDIR}"
+      rm -r "${DIRSERVICE}"
+      exit 1
    fi  
+
+   # add standard dr config stuff.
+   mkdir -p "${DIRSERVICE}/${DRCFGDIR}"
+   echo "${IMAGENAME}" > "${DIRSERVICE}/${CFG_IMAGENAME}"
+   echo "${SERVICENAME}" > "${DIRSERVICE}/${CFG_SERVICENAME}" 
+
+   # Check mandatory files made it over to host okay from the container.
+   for HFILE in "${REQDFILES[@]}"; do
+      if [ ! -e "${DIRSERVICE}/${DRBINDIR}/${HFILE}" ]; then 
+         echo "Install failed - ${HFILE} is required" 
+         rm -r "${DIRSERVICE}"
+         exit 1
+      fi
+   done
 }
 
 #------------------------------------------------------------------------------------
 
 # install
-function install {
-   local RVALI=0
-   
+function install {   
    if [ -z $IMAGENAME ]; then echo "dr install requires IMAGENAME.">&2 ; exit 1 ; fi
    if [ -z $SERVICENAME ]; then echo "dr install requires SERVICENAME.">&2 ; exit 1 ; fi
 
@@ -178,22 +202,7 @@ function install {
    local DNAME="dr-install"
 
    # --- all four globals have been set.
-   if [ -d ${DIRSERVICE} ]; then
-      echo "A service is already installed at ${DIRSERVICE}. Install cancelled. You might want   dr update ${SERVICENAME}  .">&2
-      exit 1
-   fi
-   
-   copydrfiles
-   
-   mkdir -p "${DIRSERVICE}/${DRCFGDIR}"
-   echo "${IMAGENAME}" > "${DIRSERVICE}/${CFG_IMAGENAME}"
-   echo "${SERVICENAME}" > "${DIRSERVICE}/${CFG_SERVICENAME}" 
-   chown -R "${DRUSER}:${DRGROUP}" "${DIRSERVICE}"
-   
-   # Check mandatory files made it over to host okay.
-   for HFILE in "${REQDFILES[@]}"; do
-      if [ ! -e "${DIRSERVICE}/${DRBINDIR}/${HFILE}" ]; then echo "Install failed - ${HFILE} is required" ; RVALI=1 ; fi
-   done
+   initdirservice
    
    # create the standard config volume container.
    docker volume create --name="dr-${SERVICENAME}-config" >/dev/null
@@ -203,21 +212,13 @@ function install {
     
    # Run the install script, e.g. to create volume containers.
    # todo: tidy up return/exit codes!         
-   if [ "$RVALI" -eq 0 ]; then
-      bash "${DIRSERVICE}/${DRBINDIR}/install" "${SERVICENAME}" "${IMAGENAME}"
-   fi   
+   bash "${DIRSERVICE}/${DRBINDIR}/install" "${SERVICENAME}" "${IMAGENAME}"
    
-   if [ "$RVALI" -eq 0 ]; then createlaunchscript ; fi
-   
-   # If we had errors then destroy everything!
-   if [ "$RVALI" -ne 0 ]; then
-      echo "Installation failed, destroying the partially installed service.">&2
-      destroy
-   else 
-      echo "Installation of service ${SERVICENAME} successful."
-   fi
-
-   exit "$RVALI"
+   # allow direct execution of SERVICENAME without typing dr
+   createlaunchscript
+    
+   # TODO: If we had errors then destroy everything!
+   echo "Installation of service ${SERVICENAME} successful."
 }
 
 #------------------------------------------------------------------------------------
@@ -323,27 +324,72 @@ function backup {
    mkdir -p "$TEMPF"
    local TEMPC="${TEMPPARENT}/containerbackup"
    mkdir -p "$TEMPC"
-   chown "${DRUSER}:${DRGROUP}" "$TEMPC"
+   
+   # for convenience, stick teh imagename in the tempparent folder
+   echo "${IMAGENAME}" > "$TEMPPARENT/imagename.txt"
    
    # back up our configuration directory.
-   compress "$DIRSERVICE/${DRCFGDIR}" "${TEMPF}" config_host.tar.7z
+   compress "$DIRSERVICE/${DRCFGDIR}" "${TEMPF}" "${BACKUP_HOSTZIP}"
    
    # back up our volume container (dr-${SERVICENAME}-config).
-   compressvolume "dr-${SERVICENAME}-config" "${TEMPF}" config_container.tar.7z
+   compressvolume "dr-${SERVICENAME}-config" "${TEMPF}" "${BACKUP_VOLZIP}"
    
    # call through to container to backup anything there in a subfolder.
    SCRIPTTORUN="${DIRSERVICE}/${DRBINDIR}/backup"
    bash "$SCRIPTTORUN" "$SERVICENAME" "$IMAGENAME" "$TEMPC"
       
    # Compress everything with password
-   compress "$TEMPPARENT" "$TEMPROOT" "backup.tar.7z" "$PASS"
-   mv "$TEMPROOT/backup.tar.7z" "$BACKUPFILE"
+   compress "$TEMPPARENT" "$TEMPROOT" "${BACKUP_MAIN}" "$PASS"
+   mv "${TEMPROOT}/${BACKUP_MAIN}" "$BACKUPFILE"
 
    rm -r ${TEMPROOT}   
    echo "Backed up to $BACKUPFILE succesfully.">&2
 }
 
 #------------------------------------------------------------------------------------
+
+# restore BACKUPFILE
+function restore {
+   local BACKUPFILE=$(realpath "$1" | tr -d '\r\n')
+   if [ ! -e "$BACKUPFILE" ]; then echo "$BACKUPFILE doesn't exist. Aborting." ; exit 1 ; fi
+   if [ ! -e "$DIRSERVICE" ]; then echo "$SERVICENAME exists - destroy it before restoring from backup." ; exit 1 ; fi
+   
+   local TEMPROOT="$(mktemp -d)"
+   local TEMPPARENT="${TEMPROOT}/backup"
+   local TEMPF="${TEMPPARENT}/drbackup"
+   mkdir -p "$TEMPF"
+   local TEMPC="${TEMPPARENT}/containerbackup"
+   mkdir -p "$TEMPC"
+   
+   # decompress the main backup
+   cp "$BACKUPFILE" "${TEMPROOT}/${BACKUP_MAIN}"
+   decompress "$TEMPPARENT" "$TEMPROOT" "$BACKUP_MAIN" "$PASS"
+      
+   # check backup has key files.
+   local KEYFILES=("${TEMPF}/${BACKUP_HOSTZIP}" "${TEMPF}/${BACKUP_VOLZIP}" "${TEMPPARENT}/imagename.txt")
+   for NEEDEDFILE in "${KEYFILES[@]}"; do
+      if [ ! -e "$NEEDEDFILE" ]; then echo "Backup corrupt. Missing ${NEEDEDFILE}.">&2 ; exit 1 ; fi
+   done
+   
+   # set IMAGENAME - the only missing global var.
+   IMAGENAME=$(<"$TEMPPARENT/imagename.txt")
+
+   # now can install base service
+   install
+        
+   # restore our volume container (dr-${SERVICENAME}-config), first destroying the one install just created.
+   decompressvolume "dr-${SERVICENAME}-config" "${TEMPF}" "${BACKUP_VOLZIP}"
+
+   # restore our configuration, first removing the one install just created.
+   rm -r "${DIRSERVICE}/${DRCFGDIR}"
+   decompress "${DIRSERVICE}/${DRCFGDIR}" "${TEMPF}" "${BACKUP_HOSTZIP}"
+   
+   # call through to container to restore anything there.
+   SCRIPTTORUN="${DIRSERVICE}/${DRBINDIR}/restore"
+   bash "$SCRIPTTORUN" "$SERVICENAME" "$IMAGENAME" "$TEMPC"
+   
+   echo "Service ${SERVICENAME} has been restored successfully."
+}
 
 #------------------------------------------------------------------------------------
 
@@ -440,6 +486,7 @@ case "$CMD" in
    restore)
       SERVICENAME="$1"
       retrieveDIRECTORY
+      DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
       restore "$2"
       ;;
       
