@@ -32,11 +32,6 @@ function serviceline {
    printf "   %-15s - %-55s\n" "$1" "$2"
 }
 
-# trim VARIABLENAME - seems to fail at /r. :/
-function trim {
-    read -rd '' $1 <<<"${!1}"
-}
-
 # showservices
 function showservices {
    # list available services. 
@@ -116,8 +111,7 @@ function checkimage {
    done
    
    # Check running as druser.
-   USERID=$(docker run --rm -it ${IMAGENAME} /bin/bash -c "id -u")
-   trim USERID
+   USERID=$(docker run --rm -it ${IMAGENAME} /bin/bash -c "id -u | tr -d '\r\n'")
    echo "[[${USERID}]]" ; echo " "
    if [ "$USERID" != "22022" ]; then echo "${IMAGENAME} is not Docker Runner compatible. Not running as druser (uid 22022). It's >>$USERID<<">&2 ; exit 1 ; fi   
 }
