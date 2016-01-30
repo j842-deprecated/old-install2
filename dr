@@ -59,6 +59,7 @@ NAME
 SYNOPSIS
    dr configure DIRECTORY
    dr clean
+   dr list
    
    dr install IMAGENAME SERVICENAME   
    dr update SERVICENAME
@@ -190,6 +191,8 @@ function install {
    if [ "$RVALI" -ne 0 ]; then
       echo "Installation failed, destroying the partially installed service.">&2
       destroy
+   else 
+      echo "Installation of service ${SERVICENAME} successful."
    fi
 
    exit "$RVALI"
@@ -294,6 +297,11 @@ case "$CMD" in
    restore)
       SERVICENAME="$1"
       retrieveDIRECTORY
+      ;;
+      
+   list)
+      retrieveDIRECTORY
+      showservices
       ;;
       
    #--------------------------         

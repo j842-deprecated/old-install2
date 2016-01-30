@@ -133,7 +133,7 @@ The container image must include a path /dr containing the following scripts tha
 /dr/help SERVICENAME IMAGE           -- show help for commands available
 /dr/backup SERVICENAME IMAGE PATH    -- backup to files in PATH
 /dr/restore SERVICENAME IMAGE PATH   -- restore from files in PATH
-/dr/bash SERVICENAME IMAGE           -- get bash shell in container
+/dr/enter SERVICENAME IMAGE          -- get bash shell in container
 ```
 
 ### Additional commands
