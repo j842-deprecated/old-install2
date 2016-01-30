@@ -10,6 +10,8 @@
 #
 # ------------------------------------------------------------------
 
+if [ "$EUID" -ne 0 ]; then echo "Please run as root" ; exit 1 ; fi
+
 # Global constants.
 readonly DRUSER="druser"
 readonly DRGROUP="drgroup"
@@ -124,6 +126,23 @@ EOF
    chmod a+x "$SCRIPTPATH"
 }
 
+function copydrfiles {
+   local UPDATEDIR="${DIRSERVICE}/${DRBINDIR}"
+   if [ -d "${UPDATEDIR}" ]; then
+      rm -r "${UPDATEDIR}"
+   fi
+   mkdir -p "${UPDATEDIR}"
+   chown -R "${DRUSER}:${DRGROUP}" "${UPDATEDIR}"
+   
+   # assumes docker image does not use entrypoint. Could instead override entrypoint maybe.
+   docker run --rm -it -v ${UPDATEDIR}:/tempcopy ${IMAGENAME} /bin/bash -c "cp -a /dr/* /tempcopy/"        
+                       
+   if [ $? -ne 0 ]; then 
+      echo "Failed to copy files.">&2 
+      rm -r "${UPDATEDIR}"
+   fi  
+}
+
 # install
 function install {
    local RVALI=0
@@ -141,15 +160,9 @@ function install {
       exit 1
    fi
    
+   copydrfiles
+   
    mkdir -p "${DIRSERVICE}/${DRCFGDIR}"
-   mkdir -p "${DIRSERVICE}/${DRBINDIR}"
-   chown -R druser:drgroup "${DIRSERVICE}"
-
-   # assumes docker image does not use entrypoint. Could instead override entrypoint maybe.
-   docker run --rm -i -t --name="$DNAME" -h "${HOSTNAME}" \
-               -v ${DIRSERVICE}:/tempcopy ${IMAGENAME} /bin/bash -c "cp -a /dr/* /tempcopy/${DRBINDIR}/"                
-   if [ $? -ne 0 ]; then RVALI=1 ; echo "Failed to copy files.">&2 ; fi  
-
    echo "${IMAGENAME}" > "${DIRSERVICE}/${CFG_IMAGENAME}"
    echo "${SERVICENAME}" > "${DIRSERVICE}/${CFG_SERVICENAME}" 
    chown -R "${DRUSER}:${DRGROUP}" "${DIRSERVICE}"
@@ -163,7 +176,7 @@ function install {
    docker volume create --name="dr-${SERVICENAME}-config"
    # set permissions on config volume
    docker run --name="$DNAME" -v "dr-${SERVICENAME}-config:/config" j842/dr-baseimage-alpine /bin/bash -c "chown druser:drgroup /config && date >> /config/install_date"
-   docker rm "$DNAME"
+   docker rm "$DNAME" >/dev/null 2>&1
     
    # Run the install script, e.g. to create volume containers.
    # todo: tidy up return/exit codes!         
@@ -263,6 +276,12 @@ case "$CMD" in
       retrieveDIRECTORY
       DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
       install
+      ;;
+      
+   update)
+      SERVICENAME="$1"
+      setglobals
+      copydrfiles
       ;;
       
    # dr backup SERVICENAME BACKUPFILE
