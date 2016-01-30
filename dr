@@ -14,11 +14,12 @@
 readonly DRUSER="druser"
 readonly DRGROUP="drgroup"
 readonly DRETCDIR="/etc/dr"
-readonly DRCFGDIR="drcfg"
+readonly DRCFGDIR="config"
+readonly DRBINDIR="bin"
 readonly CFG_DIRECTORY="${DRETCDIR}/directory"
 readonly CFG_IMAGENAME="${DRCFGDIR}/imagename.txt"
 readonly CFG_SERVICENAME="${DRCFGDIR}/servicename.txt"
-readonly REQDFILES=("txt/shorthelp.txt" "host/install" "host/destroy" "host/backup" "host/restore" "host/help" )
+readonly REQDFILES=("install" "destroy" "backup" "restore" "help" )
    
 # Global variables
 SERVICENAME=""
@@ -128,17 +129,19 @@ function install {
    
    local DNAME="dr-install"
 
-   # --- all four globals now set.
-   echo "DIRSERVICE=${DIRSERVICE}"
-
+   # --- all four globals have been set.
+   if [ -d ${DIRSERVICE} ]; then
+      echo "A service is already installed at ${DIRSERVICE}. Install cancelled. You might want   dr update ${SERVICENAME}  .">&2
+      exit 1
+   fi
+   
    mkdir -p "${DIRSERVICE}/${DRCFGDIR}"
-   mkdir -p "${DIRSERVICE}/host"
-   mkdir -p "${DIRSERVICE}/txt"
+   mkdir -p "${DIRSERVICE}/${DRBINDIR}"
    chown -R druser:drgroup "${DIRSERVICE}"
 
    # assumes docker image does not use entrypoint. Could instead override entrypoint maybe.
    docker run --rm -i -t --name="$DNAME" -h "${HOSTNAME}" \
-               -v ${DIRSERVICE}:/tempcopy ${IMAGENAME} /bin/bash -c "cp -a /dr/host /tempcopy && cp -a /dr/txt /tempcopy"
+               -v ${DIRSERVICE}:/tempcopy ${IMAGENAME} /bin/bash -c "cp -a /dr/* /tempcopy/${DRBINDIR}/"                
    if [ $? -ne 0 ]; then RVALI=1 ; echo "Failed to copy files.">&2 ; fi  
 
    echo "${IMAGENAME}" > "${DIRSERVICE}/${CFG_IMAGENAME}"
@@ -147,13 +150,13 @@ function install {
    
    # Check mandatory files made it over to host okay.
    for HFILE in "${REQDFILES[@]}"; do
-      if [ ! -e "${DIRSERVICE}/${HFILE}" ]; then echo "Install failed - ${HFILE} is required" ; RVALI=1 ; fi
+      if [ ! -e "${DIRSERVICE}/${DRBINDIR}/${HFILE}" ]; then echo "Install failed - ${HFILE} is required" ; RVALI=1 ; fi
    done
    
    # Run the install script, e.g. to create volume containers.
    # todo: tidy up return/exit codes!         
    if [ "$RVALI" -eq 0 ]; then
-      bash "${DIRSERVICE}/host/install" "${SERVICENAME}" "${IMAGENAME}"
+      bash "${DIRSERVICE}/${DRBINDIR}/install" "${SERVICENAME}" "${IMAGENAME}"
    fi   
    
    # If we had errors then destroy everything!
@@ -174,8 +177,8 @@ function destroy {
 
    # if the install process created a destroy script then run it, e.g. to destroy volume containers.
    # todo: tidy up return/exit codes!         
-   if [ -e "${DIRSERVICE}/host/destroy" ]; then
-      bash "${DIRSERVICE}/host/destroy" "${SERVICENAME}" "${IMAGENAME}"
+   if [ -e "${DIRSERVICE}/${DRBINDIR}/destroy" ]; then
+      bash "${DIRSERVICE}/${DRBINDIR}/destroy" "${SERVICENAME}" "${IMAGENAME}"
    else 
       RVALD=1
    fi      
@@ -270,11 +273,11 @@ case "$CMD" in
       setglobals
       
       SUBCOMMAND="$1" ; shift
-      SCRIPTTORUN="${DIRSERVICE}/host/${SUBCOMMAND}"
+      SCRIPTTORUN="${DIRSERVICE}/${DRBINDIR}/${SUBCOMMAND}"
       if [ -n "$SUBCOMMAND" ] && [ -e "${SCRIPTTORUN}" ]; then
          bash "${SCRIPTTORUN}" "${SERVICENAME}" "${IMAGENAME}" "$@"
       else
-         bash "${DIRSERVICE}/host/help" "${SERVICENAME}" "${IMAGENAME}"
+         bash "${DIRSERVICE}/${DRBINDIR}/help" "${SERVICENAME}" "${IMAGENAME}"
       fi
       ;;
 esac

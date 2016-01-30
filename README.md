@@ -112,7 +112,11 @@ dr requires the Dockerfile to create that user and group and have a USER command
 ## Standard Configuration Volume
 
 The container must expose /config as a Volume. A Docker volume container is always created by dr as
-SERVICENAME-dr-standardconfig and mounted in /config. 
+dr-SERVICENAME-config and mounted in /config with option:
+```
+-v "dr-${SERVICENAME}-config:/config" 
+```
+This option needs to be in any scripts in /dr/host that launch the container.
 
 ## Backup/Restore 
 You can backup and restore services. The backup is generally fully self contained, so can be restored to a different host!
@@ -122,26 +126,20 @@ Backup and restore of the standard configuration volume is managed by dr, the ba
 
 ## Files Required
 
-The container image must include a path /dr containing:
-
+The container image must include a path /dr containing the following scripts that can be run on the host:
 ```
-/dr/txt/shorthelp.txt                           -- shown when dr is run with no args
-```
-
-and the following mandatory scripts that can be run on the host:
-```
-/dr/host/install SERVICENAME IMAGE        -- automatically run on host when installed
-/dr/host/destroy SERVICENAME IMAGE        -- automatically run on host when destroyed
-/dr/host/help SERVICENAME IMAGE           -- show help for commands available
-/dr/host/backup SERVICENAME IMAGE PATH    -- backup to files in PATH
-/dr/host/restore SERVICENAME IMAGE PATH   -- restore from files in PATH
+/dr/install SERVICENAME IMAGE        -- automatically run on host when installed
+/dr/destroy SERVICENAME IMAGE        -- automatically run on host when destroyed
+/dr/help SERVICENAME IMAGE           -- show help for commands available
+/dr/backup SERVICENAME IMAGE PATH    -- backup to files in PATH
+/dr/restore SERVICENAME IMAGE PATH   -- restore from files in PATH
 ```
 
 ### Additional commands
 
 You can also add any other command that would be useful, e.g. run, configure etc.
 ```
-/dr/host/ANOTHERCMD SERVICENAME IMAGE [ARGS...]  -- any other command needed.
+/dr/ANOTHERCMD SERVICENAME IMAGE [ARGS...]  -- any other command needed.
 ```
 
 Those commands are invoked from the host with
