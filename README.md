@@ -62,7 +62,8 @@ Install and configure [simplesecrets](https://github.com/j842/docker-simplesecre
     
 Store secrets in S3:
 ```
-    simplesecrets < myfile
+    simplesecrets store < myfile
+    PASS=? simplesecrets retrieve NAME
 ```
 
 ## General Use
