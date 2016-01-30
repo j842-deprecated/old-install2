@@ -1,4 +1,4 @@
-# CURRENTLY UNDER DEVELOPMENT AND BROKEN! (30 Jan 2016)
+# Under heavy development. Try it, don't use it. (30 Jan 2016)
 
 # Docker Runner
 
