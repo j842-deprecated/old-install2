@@ -9,9 +9,9 @@ Docker Runner eliminates the need to separately store and manage scripts to use 
 or deal with long docker run commands.
 
 Features:
-* The service's dr compatible Docker Image is self contained - everything dr needs is inside it
-* Simple discoverable commands to use compatible services (no manual needed)
-* Flexible configuration for each service stored in a Docker Volume container managed for you
+* dr compatible Docker Images are self contained - everything dr needs is inside
+* Simple discoverable commands for using compatible services (no manual needed)
+* Flexible configuration for each service, stored in a Docker Volume container that's managed for you
 * Services can consist of any number of containers
 * Backup a service to a single file, trivially restore on another machine
 * Destroying a service leaves the machine in a clean state, no cruft left
