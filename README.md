@@ -19,42 +19,9 @@ e.g. to run multiple minecraft servers on different ports.
 
 Docker Runner tries to be Ansible friendly for automation (see [Exit Codes](https://github.com/j842/dr#exit-codes) below).
 
-# Basic Use
 
-Configure sets up dr's main directory for storing services. Only needs to be called once per host:
-```
-    dr configure DIRECTORY
-```
 
-Install a container (e.g. from DockerHub) that supports dr and call the service 'SERVICENAME'.
-```
-    dr install IMAGENAME SERVICENAME
-```
-
-Manage that service:
-```
-    dr SERVICENAME COMMAND ARGS
-```
-The available COMMANDs depend on the service; they can be things like run and configure. You can get help on the service
-which also lists the available COMMANDs with
-```
-    dr SERVICENAME
-```
-
-Destroy the service, including destroying all stored data, leaving the host in a clean state:
-```
-    dr destroy SERVICENAME
-``` 
-
-Other commands that work on all services:
-```
-dr backup SERVICENAME BACKUPFILE     -- backup
-dr restore SERVICENAME BACKUPFILE    -- restore (destructive, no confirmation! always backup first)
-dr shell SERVICENAME                 -- shell access to container
-dr update SERVICENAME                -- update service scripts from container (e.g. after docker pull)
-```
-   
-
+# Usage
 
 ## Example
 
@@ -97,9 +64,43 @@ Store secrets in S3:
     dr simplesecrets < myfile
 ```
 
+## General Use
 
+Configure sets up dr's main directory for storing services. Only needs to be called once per host:
+```
+    dr configure DIRECTORY
+```
 
-# Making a container compatible with dr
+Install a container (e.g. from DockerHub) that supports dr and call the service 'SERVICENAME'.
+```
+    dr install IMAGENAME SERVICENAME
+```
+
+Manage that service:
+```
+    dr SERVICENAME COMMAND ARGS
+```
+The available COMMANDs depend on the service; they can be things like run and configure. You can get help on the service
+which also lists the available COMMANDs with
+```
+    dr SERVICENAME
+```
+
+Destroy the service, including destroying all stored data, leaving the host in a clean state:
+```
+    dr destroy SERVICENAME
+``` 
+
+Other commands that work on all services:
+```
+dr backup SERVICENAME BACKUPFILE     -- backup
+dr restore SERVICENAME BACKUPFILE    -- restore (destructive, no confirmation! always backup first)
+dr shell SERVICENAME                 -- shell access to container
+dr update SERVICENAME                -- update service scripts from container (e.g. after docker pull)
+```
+   
+
+# Docker Runner Compatibility
 
 ## Example
 
