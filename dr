@@ -63,9 +63,10 @@ SYNOPSIS
    
    dr install IMAGENAME SERVICENAME   
    dr update SERVICENAME
-   dr backup SERVICENAME BACKUPFILE
-   dr restore SERVICENAME BACKUPFILE
    dr destroy SERVICENAME
+
+   PASS=? dr backup SERVICENAME BACKUPFILE
+   PASS=? dr restore SERVICENAME BACKUPFILE
    
    dr SERVICENAME
    dr SERVICENAME enter
@@ -102,6 +103,8 @@ function configure {
    echo "Configuration complete: created druser and set up $DIRECTORY." >&2
 }
 
+#------------------------------------------------------------------------------------
+
 # checkimage 
 function checkimage {
    # Check mandatory files in image (global var IMAGENAME) before touching host. Is it a valid dr container?
@@ -116,6 +119,8 @@ function checkimage {
    
    echo "${IMAGENAME} is dr compatible.">&2
 }
+
+#------------------------------------------------------------------------------------
 
 # createlaunchscript
 function createlaunchscript {
@@ -143,6 +148,8 @@ function copydrfiles {
       rm -r "${UPDATEDIR}"
    fi  
 }
+
+#------------------------------------------------------------------------------------
 
 # install
 function install {
@@ -198,6 +205,8 @@ function install {
    exit "$RVALI"
 }
 
+#------------------------------------------------------------------------------------
+
 # destroy
 function destroy {
    if [ -z $SERVICENAME ]; then echo "dr destroy requires SERVICENAME to be set.">&2 ; exit 1 ; fi
@@ -227,6 +236,28 @@ function destroy {
 
 #------------------------------------------------------------------------------------
 
+# backup BACKUPFILE
+function backup {
+   local BACKUPFILE="$1"
+   if [ -e "$BACKUPFILE" ]; then echo "$BACKUPFILE already exists. Aborting." ; exit 1 ; fi
+   if [ -z "$PASS" ]; then echo "All backups must be encrypted. Environment variable PASS needs to be set." ; exit 1 ; fi
+   
+   # tar up our configuration directory.
+   
+   # back up our volume container (dr-${SERVICENAME}-config).
+   
+   # call through to container to backup anything there in a subfolder.
+   
+   # compress
+   
+   # encrypt
+   
+}
+
+#------------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------------
+
 
 # retriveDIRECTORY
 function retrieveDIRECTORY {
@@ -236,6 +267,8 @@ function retrieveDIRECTORY {
    if [ -z "$DIRECTORY" ]; then echo "$DIRERR">&2 ; exit 1 ; fi
    if [ ! -d "$DIRECTORY" ]; then echo "$DIRERR">&2 ; exit 1 ; fi
 }
+
+#------------------------------------------------------------------------------------
 
 # setglobals
 function setglobals {
@@ -291,12 +324,14 @@ case "$CMD" in
    backup)
       SERVICENAME="$1"
       setglobals
+      backup "$2"
       ;;
      
    # dr restore SERVICENAME BACKUPFILE
    restore)
       SERVICENAME="$1"
       retrieveDIRECTORY
+      restore "$2"
       ;;
       
    list)

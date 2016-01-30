@@ -90,10 +90,11 @@ which also lists the available COMMANDs with
 
 Other commands that work on all services:
 ```
-dr backup SERVICENAME BACKUPFILE     -- backup
-dr restore SERVICENAME BACKUPFILE    -- restore (destructive, no confirmation! always backup first)
-dr update SERVICENAME                -- update service scripts from container (e.g. after docker pull)
-dr destroy SERVICENAME               -- destroy service and ALL data! Leaves host in clean state.
+dr update SERVICENAME                     -- update service scripts from container (e.g. after docker pull)
+dr destroy SERVICENAME                    -- destroy service and ALL data! Leaves host in clean state.
+
+PASS=? dr backup SERVICENAME BACKUPFILE   -- backup container, configuration and (depends on service) data.
+PASS=? dr restore SERVICENAME BACKUPFILE  -- restore (destructive, no confirmation! always backup first)
 ```
    
 
