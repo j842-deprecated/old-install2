@@ -8,18 +8,16 @@ configure and use Docker containers.
 Docker Runner eliminates the need to separately store and manage scripts to use the Docker container, 
 or deal with long docker run commands.
 
-With Docker Runner each docker image has the ability to configure the host appropriately, meaning that you can use
-simple discoverable commands (no manual needed) to use any compatible service. This configuration is flexible, with
-any options or custom service configuration persisted within a docker volume container for that service 
-that can be managed for you. It also supports destroying the service, removing any stored data and configuration and
-leaving the host clean.
-
-You can trivially install one docker image as multiple different services with different configuration options, 
-e.g. to run multiple minecraft servers on different ports.
-
-Docker Runner tries to be Ansible friendly for automation (see [Exit Codes](https://github.com/j842/dr#exit-codes) below).
-
-
+Features:
+* The service's dr compatible Docker Image is self contained - everything dr needs is inside it
+* Simple discoverable commands to use compatible services (no manual needed)
+* Flexible configuration for each service stored in a Docker Volume container managed for you
+* Services can consist of any number of containers
+* Backup a service to a single file, trivially restore on another machine
+* Destroying a service leaves the machine in a clean state, no cruft left
+* Containers run as non-root user
+* Trivial to install a service multiple times with different configurations (e.g. mulitple minecraft servers)
+* Ansible friendly for automation (see [Exit Codes](https://github.com/j842/dr#exit-codes) below).
 
 # Usage
 
