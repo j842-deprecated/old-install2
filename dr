@@ -22,6 +22,7 @@ readonly CFG_DIRECTORY="${DRETCDIR}/directory"
 readonly CFG_IMAGENAME="${DRCFGDIR}/imagename.txt"
 readonly CFG_SERVICENAME="${DRCFGDIR}/servicename.txt"
 readonly REQDFILES=("install" "destroy" "backup" "restore" "help" "enter" )
+readonly COPYIMAGE="j842/dr-baseimage-alpine"
    
 # Global variables
 SERVICENAME=""
@@ -30,10 +31,14 @@ DIRSERVICE=""
 IMAGENAME=""
 
 
+#------------------------------------------------------------------------------------
+
 # serviceline SERVICE SHORTHELP
 function serviceline {
    printf "   %-15s - %-55s\n" "$1" "$2"
 }
+
+#------------------------------------------------------------------------------------
 
 # showservices
 function showservices {
@@ -50,6 +55,9 @@ function showservices {
    done
 }
 
+#------------------------------------------------------------------------------------
+
+# showusage
 function showusage {
 cat <<'EOF' >&2
 
@@ -84,6 +92,11 @@ EXIT CODE
    
 EOF
 }
+
+#------------------------------------------------------------------------------------
+
+# command_exists
+function command_exists { command -v "$1" >/dev/null 2>&1 ; }
 
 #------------------------------------------------------------------------------------
 
@@ -131,6 +144,8 @@ dr ${SERVICENAME} "\$@"
 EOF
    chmod a+x "$SCRIPTPATH"
 }
+
+#------------------------------------------------------------------------------------
 
 function copydrfiles {
    local UPDATEDIR="${DIRSERVICE}/${DRBINDIR}"
@@ -183,8 +198,8 @@ function install {
    # create the standard config volume container.
    docker volume create --name="dr-${SERVICENAME}-config" >/dev/null
    # set permissions on config volume
-   docker run --name="$DNAME" -v "dr-${SERVICENAME}-config:/config" j842/dr-baseimage-alpine /bin/bash -c "chown druser:drgroup /config && date >> /config/install_date"
-   docker rm "$DNAME" >/dev/null 2>&1
+   docker run --name="$DNAME" -v "dr-${SERVICENAME}-config:/config" "${COPYIMAGE}" /bin/bash -c "chown druser:drgroup /config && date >> /config/install_date"
+   docker rm "$DNAME" >/dev/null 
     
    # Run the install script, e.g. to create volume containers.
    # todo: tidy up return/exit codes!         
@@ -235,23 +250,97 @@ function destroy {
 }
 
 #------------------------------------------------------------------------------------
+# compress SOURCEFOLDER ARCHIVEFOLDER ARCHIVENAME [PASS]
+function compress {
+   local SOURCEFOLDER=$(realpath "$1" | tr -d '\r\n')
+   if [ $? -ne 0 ]; echo "dr function compress: Couldn't find source path $1."
+   local ARCHIVEFOLDER=$(realpath "$2" | tr -d '\r\n')
+   if [ $? -ne 0 ]; echo "dr function compress: Couldn't find destination path $2."
+   local ARCHIVEPATH="$ARCHIVEFOLDER/$3"
+   local PASSCMD=""
+   if [ -n "$4" ]; PASSCMD="-p${4}"; fi
+   
+   tar cf - -C "$SOURCEFOLDER" . | 7za a -si "${PASSCMD}" "$ARCHIVEPATH" > /dev/null
+   if [ $? -ne 0 ]; then echo "Failed to create archive of $SOURCEFOLDER">&2 ; exit 1 ; fi
+}
+
+# decompress DESTFOLDER ARCHIVEFOLDER ARCHIVENAME [PASS]
+function decompress {
+   local DESTFOLDER=$(realpath "$1" | tr -d '\r\n')
+   local ARCHIVEFOLDER=$(realpath "$2" | tr -d '\r\n')
+   local ARCHIVEPATH="$ARCHIVEFOLDER/$3"
+
+   if [ ! -e "$ARCHIVEPATH" ]; then echo "dr function decompress: No such archive: $ARCHIVEPATH">&2 ; exit 1 ; fi
+   if [ ! -d "$DESTFOLDER" ]; then echo "dr function decompress: Destination folder does not exist: $DESTFOLDER">&2 ; exit 1 ; fi
+   local PASSCMD=""
+   if [ -n "$4" ]; PASSCMD="-p${4}"; fi
+   
+   7za x -so "${PASSCMD}" "${ARCHIVEPATH}" | tar xf - -C "${DESTFOLDER}"
+   if [ $? -ne 0 ]; then echo "Failed to decompress archive $ARCHIVEPATH . The password may be incorrect!">&2 ; exit 1 ; fi
+}
+
+# compressvolume VOLUMENAME ARCHIVEFOLDER ARCHIVENAME
+function compressvolume {
+   local VOLUMENAME="$1"
+   local ARCHIVEFOLDER=$(realpath "$2" | tr -d '\r\n')
+   if [ $? -ne 0 ]; echo "dr function compressvolume: Couldn't find destination path $2."
+   local ARCHIVENAME="$3"
+   local DCNAME="dr-compressvolume"
+
+   docker run --name="${DCNAME}" \
+      -v "${VOLUMENAME}:/vol" -v "${ARCHIVEFOLDER}:/archive" "${COPYIMAGE}" \
+      /bin/bash -c "tar zcf /archive/${ARCHIVENAME} -C /vol ."
+   docker rm "${DCNAME}" >/dev/null 
+}
+
+# decompressvolume VOLUMENAME ARCHIVEFOLDER ARCHIVENAME
+function decompressvolume {
+   local VOLUMENAME="$1"
+   local ARCHIVEFOLDER=$(realpath "$2" | tr -d '\r\n')
+   local ARCHIVENAME="$3"
+   if [ ! -e "$ARCHIVEFOLDER/$ARCHIVENAME" ]; then echo "dr function decompressvolume: Couldn't find archive $ARCHIVENAME">&2 ; exit 1 ; fi
+   local DCNAME="dr-decompressvolume"
+
+   # destroy any pre-existing data!
+   docker volume rm "${VOLUMENAME}" >/dev/null
+   docker volume create --name="${VOLUMENAME}" >/dev/null
+   docker run --name="${DCNAME}" \
+      -v "${VOLUMENAME}:/vol" -v "${ARCHIVEFOLDER}:/archive" "${COPYIMAGE}" \
+      /bin/bash -c "tar zxf /archive/${ARCHIVENAME} -C /vol"
+   docker rm "${DCNAME}" >/dev/null 
+}
+
+#------------------------------------------------------------------------------------
 
 # backup BACKUPFILE
 function backup {
-   local BACKUPFILE="$1"
+   local BACKUPFILE=$(realpath "$1" | tr -d '\r\n')
    if [ -e "$BACKUPFILE" ]; then echo "$BACKUPFILE already exists. Aborting." ; exit 1 ; fi
-   if [ -z "$PASS" ]; then echo "All backups must be encrypted. Environment variable PASS needs to be set." ; exit 1 ; fi
    
-   # tar up our configuration directory.
+   local TEMPROOT="$(mktemp -d)"
+   local TEMPPARENT="${TEMPROOT}/backup"
+   local TEMPF="${TEMPPARENT}/drbackup"
+   mkdir -p "$TEMPF"
+   local TEMPC="${TEMPPARENT}/containerbackup"
+   mkdir -p "$TEMPC"
+   chown "${DRUSER}:${DRGROUP}" "$TEMPC"
+   
+   # back up our configuration directory.
+   compress "$DIRSERVICE/${DRCFGDIR}" "${TEMPF}" config_host.tar.7z
    
    # back up our volume container (dr-${SERVICENAME}-config).
+   compressvolume "dr-${SERVICENAME}-config" "${TEMPF}" config_container.tar.7z
    
    # call through to container to backup anything there in a subfolder.
-   
-   # compress
-   
-   # encrypt
-   
+   SCRIPTTORUN="${DIRSERVICE}/${DRBINDIR}/backup"
+   bash "$SCRIPTTORUN" "$SERVICENAME" "$IMAGENAME" "$TEMPC"
+      
+   # Compress everything with password
+   compress "$TEMPPARENT" "$TEMPROOT" "backup.tar.7z" "$PASS"
+   mv "$TEMPROOT/backup.tar.7z" "$BACKUPFILE"
+
+   rm -r ${TEMPROOT}   
+   echo "Backed up to $BACKUPFILE succesfully.">&2
 }
 
 #------------------------------------------------------------------------------------
@@ -286,6 +375,26 @@ function setglobals {
 
 #------------------------------------------------------------------------------------
 
+
+if ! command_exists docker ; then
+   echo "Please install Docker before using Docker Runner.">&2
+   echo "(e.g. use  https://github.com/j842/scripts/blob/master/install_docker.sh )">&2
+   exit 1
+fi
+if [ $(uname -rv | grep -c "Debian") -eq 0 ]; then
+   echo "This script is currently only for Debian hosts.">&2
+   exit 1
+fi
+# Check basic commands are available
+COMMANDS=(gpg wget md5sum 7z 7za)
+for NEEDEDCMD in "${COMMANDS[@]}"; do
+  if ! command_exists "${NEEDEDCMD}" ; then 
+      echo "Docker Runner requires ${NEEDEDCMD} to be available for scripts." >&2 
+      echo "After Docker is installed, install all other dependencies with: ">&2 
+      echo "apt-get install -y gnupg 7zip-full">&2 
+      exit 1 
+  fi
+done
 
 CMD="$1" ; shift
 

@@ -35,9 +35,10 @@ Configure dr:
     dr configure /opt/dr
 ```
 
-If you don't have docker you can install it on Debian with:
+If you don't have docker, gnupg, 7z installed then you can get them with:
 ```
    wget -nv -O /tmp/install_docker.sh https://raw.github.com/j842/scripts/master/install_docker.sh ; bash /tmp/install_docker.sh
+   apt-get install -y gnupg 7zip-full
 ```
 
 Now you're ready to try things.
