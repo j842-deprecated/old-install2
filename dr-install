@@ -35,12 +35,12 @@ NAME
    dr-install - install the Docker Runner framework
     
 SYNOPSIS
-   dr-install DIRECTORY
+   dr-install ROOTPATH
 
 DESCRIPTION
    Docker Runner Provides a standard way to manage and run containers.
    This script installs Docker Runner on a Debian system, with all files
-   stored under DIRECTORY.
+   stored under ROOTPATH, e.g. /opt/dr.
    
    See https://github.com/j842/dr
    
@@ -56,13 +56,13 @@ EOF
 
 # copydrfiles
 function copydrfiles {
-   # the directory that the container will update.
-   local DRBINPATH="${DIRECTORY}/${DRBINDIR}"
+   # the ROOTPATH that the container will update.
+   local DRBINPATH="${ROOTPATH}/${DRBINDIR}"
    if [ -d "${DRBINPATH}" ]; then
       rm -r "${DRBINPATH}"
    fi
    mkdir -p "${DRBINPATH}"
-   mkdir -p "${DIRECTORY}/${DRSERVICESDIR}"
+   mkdir -p "${ROOTPATH}/${DRSERVICESDIR}"
    
    # allow normal user in container to add content to DRBINPATH.
    chmod a+rwx "${DRBINPATH}"
@@ -70,7 +70,7 @@ function copydrfiles {
    if [ $? -ne 0 ]; then 
       echo "Failed to copy files.">&2 
       echo "You will need to reinstall Docker Runner.">&2
-      rm -r "${DIRECTORY}" "${DRETCPATH}"
+      rm -r "${ROOTPATH}" "${DRETCPATH}"
       exit 1
    fi  
    # set safer ownership and permissions
@@ -86,21 +86,21 @@ function copydrfiles {
 
 # configure
 function configure {
-   if [ -z $1 ]; then echo "dr-install requires directory argument.">&2 ; exit 1 ; fi
-   DIRECTORY="$1"
+   if [ -z $1 ]; then echo "dr-install requires ROOTPATH argument.">&2 ; exit 1 ; fi
+   ROOTPATH="$1"
    mkdir -p "$DRETCPATH"   # ensure directrory exists.   
-   DATESTAMP="$(LC_ALL=C date -u +"%a, %d %b %Y %X %z")"
+   local DATESTAMP="$(LC_ALL=C date -u +"%a, %d %b %Y %X %z")"
 
 cat <<EOF >"${DR_CFG_FILE_PATH}"
 # Docker Runner configuration file.
 # Last modified ${DATESTAMP}
 
-readonly DIRECTORY="${DIRECTORY}"
-readonly DRSERVICESPATH="${DIRECTORY}/${DRSERVICESDIR}"
+readonly ROOTPATH="${ROOTPATH}"
+readonly DRSERVICESPATH="${ROOTPATH}/${DRSERVICESDIR}"
 readonly SUPPORTIMAGE="${SUPPORTIMAGE}"
 EOF
    
-   # creates DIRECTORY and populates the bin folder from SUPPORTIMAGE.
+   # creates ROOTPATH and populates the bin folder from SUPPORTIMAGE.
    copydrfiles
    
    # set up standard docker user and group for containers.
