@@ -29,7 +29,7 @@ Features:
 
 Docker Runner needs docker, gnupg and 7z. You can install them with:
 ```
-   wget -nv -O /tmp/install_docker.sh https://raw.github.com/j842/scripts/master/install_docker.sh ; bash /tmp/install_docker.sh
+   wget -nv -O /tmp/install_docker.sh https://goo.gl/2cxobx ; bash /tmp/install_docker.sh
    apt-get install -y gnupg p7zip-full
 ```
 #### Installing Docker Runner
