@@ -129,7 +129,6 @@ function configure {
    adduser --disabled-password --gecos '' -u 22022 --gid 22022 "$DRUSER"
 
    mkdir -p "$DIRECTORY"   # ensure directrory exists.
-   chown -R "${DRUSER}:${DRGROUP}" "$DIRECTORY"
    
    echo "Configuration complete: created druser and set up $DIRECTORY." >&2
 }
@@ -165,6 +164,27 @@ EOF
 
 #------------------------------------------------------------------------------------
 
+function copydrfiles {
+   # the directory that the container will update.
+   local UPDATEDIR="${DIRSERVICE}/${DRBINDIR}"
+   if [ -d "${UPDATEDIR}" ]; then
+      rm -r "${UPDATEDIR}"
+   fi
+   mkdir -p "${UPDATEDIR}"
+   chown "${DRUSER}:${DRGROUP}" "${UPDATEDIR}"
+   
+   # assumes docker image does not use entrypoint. Could instead override entrypoint maybe.
+   docker run --rm -it -v "${UPDATEDIR}:/tempcopy" "${IMAGENAME}" /bin/bash -c "cp -a /dr/* /tempcopy/"                             
+   if [ $? -ne 0 ]; then 
+      echo "Failed to copy files.">&2 
+      echo "You will need to reinstall the service.">&2
+      rm -r "${DIRSERVICE}"
+      exit 1
+   fi  
+   chown -R root:root "${UPDATEDIR}"
+   chmod -R a-w "${UPDATEDIR}"
+}
+
 # initdrservice
 function initdirservice {
    # can only call when service directory not present (for safety)
@@ -174,21 +194,7 @@ function initdirservice {
       exit 1
    fi
 
-   # the directory that the container will update.
-   local UPDATEDIR="${DIRSERVICE}/${DRBINDIR}"
-   if [ -d "${UPDATEDIR}" ]; then
-      rm -r "${UPDATEDIR}"
-   fi
-   mkdir -p "${UPDATEDIR}"
-   chown -R "${DRUSER}:${DRGROUP}" "${UPDATEDIR}"
-   
-   # assumes docker image does not use entrypoint. Could instead override entrypoint maybe.
-   docker run --rm -it -v "${UPDATEDIR}:/tempcopy" "${IMAGENAME}" /bin/bash -c "cp -a /dr/* /tempcopy/"                             
-   if [ $? -ne 0 ]; then 
-      echo "Failed to copy files.">&2 
-      rm -r "${DIRSERVICE}"
-      exit 1
-   fi  
+   copydrfiles
 
    # add standard dr config stuff.
    mkdir -p "${DIRSERVICE}/${DRCFGDIR}"
@@ -457,7 +463,7 @@ for NEEDEDCMD in "${COMMANDS[@]}"; do
   if ! command_exists "${NEEDEDCMD}" ; then 
       echo "Docker Runner requires ${NEEDEDCMD} to be available for scripts." >&2 
       echo "After Docker is installed, install all other dependencies with: ">&2 
-      echo "apt-get install -y gnupg 7zip-full">&2 
+      echo "apt-get install -y gnupg p7zip-full">&2 
       exit 1 
   fi
 done
