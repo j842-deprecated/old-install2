@@ -38,7 +38,7 @@ IMAGENAME=""
 # die MESSAGE 
 function die {
    if [ -n "$1" ]; then
-      echo "$MESSAGE" <&2
+      echo "$1" <&2
    else
       echo "Unexpected error. Exiting."<&2
    fi
@@ -326,6 +326,7 @@ function decompressvolume {
 
 # backup BACKUPFILE
 function backup {
+   if [ -z "$1" ]; then die "No BACKUPFILE was specified." ; fi
    local BACKUPFILE=$(realpath "$1" | tr -d '\r\n')
    if [ -e "$BACKUPFILE" ]; then die "$BACKUPFILE already exists. Aborting." ; fi
    
@@ -361,6 +362,7 @@ function backup {
 
 # restore BACKUPFILE
 function restore {
+   if [ -z "$1" ]; then die "No BACKUPFILE was specified." ; fi
    local BACKUPFILE=$(realpath "$1" | tr -d '\r\n')
    if [ ! -e "$BACKUPFILE" ]; then die "$BACKUPFILE doesn't exist. Aborting." ; fi
    if [ ! -e "$DIRSERVICE" ]; then die "$SERVICENAME exists - destroy it before restoring from backup." ; fi
@@ -419,7 +421,9 @@ function retrieveDIRECTORY {
 # setglobals
 function setglobals {
    # expects SERVICENAME to be set.
-   if [ -z "$SERVICENAME" ]; then die "setglobals requires SERVICENAME to be set first." ; fi
+   if [ -z "${SERVICENAME}" ]; then 
+      die "SERVICENAME has not been set." 
+   fi
    retrieveDIRECTORY
 
    DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
@@ -495,10 +499,15 @@ case "$CMD" in
      
    # dr restore SERVICENAME BACKUPFILE
    restore)
-      SERVICENAME="$1"
-      retrieveDIRECTORY
-      DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
-      restore "$2"
+      if [ "$1" ] && [ "$2" ]; then
+         SERVICENAME="$1"
+         retrieveDIRECTORY
+         DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
+         restore "$2"
+      else
+         echo "Usage:">&2
+         die "   dr restore SERVICENAME BACKUPFILE"
+      fi
       ;;
       
    list)
