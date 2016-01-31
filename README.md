@@ -31,7 +31,7 @@ Install dr on the host:
     bash dr-install /opt/dr
 ```
 
-dr needs docker, gnupg and 7z. You can install themn with:
+dr needs docker, gnupg and 7z. You can install them with:
 ```
    wget -nv -O /tmp/install_docker.sh https://raw.github.com/j842/scripts/master/install_docker.sh ; bash /tmp/install_docker.sh
    apt-get install -y gnupg p7zip-full
@@ -85,8 +85,8 @@ Other commands that work on all services:
 SERVICENAME update                        -- update service scripts from container (e.g. after docker pull)
 SERVICENAME destroy                       -- destroy service and ALL data! Leaves host in clean state.
 
-PASS=? dr SERVICENAME backup BACKUPFILE   -- backup container, configuration and (depends on service) data.
-PASS=? dr SERVICENAME restore BACKUPFILE  -- restore (destructive, no confirmation! always backup first)
+PASS=? dr SERVICENAME backup BACKUPFILE   -- backup container, configuration and local data.
+PASS=? dr SERVICENAME restore BACKUPFILE  -- restore container, configuration and local data.
 ```
    
 
