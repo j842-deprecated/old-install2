@@ -99,9 +99,9 @@ For an example see: https://github.com/j842/docker-dr-helloworld
 ## User
 
 dr runs as root on the host.
-dr requires the Dockerfile to create a non-root user and group and have a USER command to switch to it. You
+dr requires the Dockerfile to create a non-root user and siwtch to it with the USER command. You
 can set up and use sudo in the container, but you can't run as root (for security). Use different UIDs for
-different services to help with contianer isolation.
+different services to help with container isolation.
 
 ## Standard Configuration Volume
 
