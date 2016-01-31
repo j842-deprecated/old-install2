@@ -25,18 +25,20 @@ Features:
 
 ### First time installation
 
-Install dr on the host:
-```
-    wget https://raw.githubusercontent.com/j842/dr/master/dr-install
-    bash dr-install /opt/dr
-```
+#### Dependencies
 
-dr needs docker, gnupg and 7z. You can install them with:
+Docker Runner needs docker, gnupg and 7z. You can install them with:
 ```
    wget -nv -O /tmp/install_docker.sh https://raw.github.com/j842/scripts/master/install_docker.sh ; bash /tmp/install_docker.sh
    apt-get install -y gnupg p7zip-full
 ```
+#### Installing Docker Runner
 
+Install dr on the host by downloading the install script:
+```
+    wget https://raw.githubusercontent.com/j842/dr/master/dr-install
+    bash dr-install /opt/dr
+```
 Now you're ready to try things.
 
 ### Running some containers
