@@ -164,26 +164,29 @@ EOF
 
 #------------------------------------------------------------------------------------
 
+# copydrfiles
 function copydrfiles {
    # the directory that the container will update.
-   local UPDATEDIR="${DIRSERVICE}/${DRBINDIR}"
-   if [ -d "${UPDATEDIR}" ]; then
-      rm -r "${UPDATEDIR}"
+   local DRBINPATH="${DIRSERVICE}/${DRBINDIR}"
+   if [ -d "${DRBINPATH}" ]; then
+      rm -r "${DRBINPATH}"
    fi
-   mkdir -p "${UPDATEDIR}"
-   chown "${DRUSER}:${DRGROUP}" "${UPDATEDIR}"
+   mkdir -p "${DRBINPATH}"
+   chown "${DRUSER}:${DRGROUP}" "${DRBINPATH}"
    
    # assumes docker image does not use entrypoint. Could instead override entrypoint maybe.
-   docker run --rm -it -v "${UPDATEDIR}:/tempcopy" "${IMAGENAME}" /bin/bash -c "cp -a /dr/* /tempcopy/"                             
+   docker run --rm -it -v "${DRBINPATH}:/tempcopy" "${IMAGENAME}" /bin/bash -c "cp -a /dr/* /tempcopy/"                             
    if [ $? -ne 0 ]; then 
       echo "Failed to copy files.">&2 
       echo "You will need to reinstall the service.">&2
       rm -r "${DIRSERVICE}"
       exit 1
    fi  
-   chown -R root:root "${UPDATEDIR}"
-   chmod -R a-w "${UPDATEDIR}"
+   chown -R root:root "${DRBINPATH}"
+   chmod -R a-w "${DRBINPATH}"
 }
+
+#------------------------------------------------------------------------------------
 
 # initdrservice
 function initdirservice {
