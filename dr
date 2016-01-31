@@ -365,7 +365,7 @@ function restore {
    if [ -z "$1" ]; then die "No BACKUPFILE was specified." ; fi
    local BACKUPFILE=$(realpath "$1" | tr -d '\r\n')
    if [ ! -e "$BACKUPFILE" ]; then die "$BACKUPFILE doesn't exist. Aborting." ; fi
-   if [ ! -e "$DIRSERVICE" ]; then die "$SERVICENAME exists - destroy it before restoring from backup." ; fi
+   if [ -e "$DIRSERVICE" ]; then die "$SERVICENAME exists - destroy it before restoring from backup." ; fi
    
    local TEMPROOT="$(mktemp -d)"
    local TEMPPARENT="${TEMPROOT}/backup"
@@ -395,6 +395,7 @@ function restore {
 
    # restore our configuration, first removing the one install just created.
    rm -r "${DIRSERVICE}/${DRCFGDIR}"
+   mkdir "${DIRSERVICE}/${DRCFGDIR}"
    decompress "${DIRSERVICE}/${DRCFGDIR}" "${TEMPF}" "${BACKUP_HOSTZIP}"
    
    # call through to container to restore anything there.
