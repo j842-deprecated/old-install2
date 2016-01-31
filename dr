@@ -33,6 +33,17 @@ DIRECTORY=""
 DIRSERVICE=""
 IMAGENAME=""
 
+#------------------------------------------------------------------------------------
+
+# die MESSAGE 
+function die {
+   if [ -n "$1" ]; then
+      echo "$MESSAGE" <&2
+   else
+      echo "Unexpected error. Exiting."<&2
+   fi
+   exit 1
+}
 
 #------------------------------------------------------------------------------------
 
@@ -48,7 +59,7 @@ function showservices {
    # list available services. 
    # function install here should create imagename.txt
    # the container's drinstall script should create the shorthelp.txt file
-   if [ -z $DIRECTORY ]; then echo "Main directory not set - can't show services." ; exit 1 ; fi
+   if [ -z $DIRECTORY ]; then die "Main directory not set - can't show services." ; fi
    echo "AVAILABLE SERVICES"
    find "$DIRECTORY" -maxdepth 1 -type d | while read SERVICEPATH; do 
       if [ -e "${SERVICEPATH}/${CFG_IMAGENAME}" ]; then
@@ -168,7 +179,7 @@ function initdirservice {
    chown -R "${DRUSER}:${DRGROUP}" "${UPDATEDIR}"
    
    # assumes docker image does not use entrypoint. Could instead override entrypoint maybe.
-   docker run --rm -it -v ${UPDATEDIR}:/tempcopy ${IMAGENAME} /bin/bash -c "cp -a /dr/* /tempcopy/"                             
+   docker run --rm -it -v "${UPDATEDIR}:/tempcopy" "${IMAGENAME}" /bin/bash -c "cp -a /dr/* /tempcopy/"                             
    if [ $? -ne 0 ]; then 
       echo "Failed to copy files.">&2 
       rm -r "${DIRSERVICE}"
@@ -225,7 +236,7 @@ function install {
 
 # destroy
 function destroy {
-   if [ -z $SERVICENAME ]; then echo "dr destroy requires SERVICENAME to be set.">&2 ; exit 1 ; fi
+   if [ -z $SERVICENAME ]; then die "dr destroy requires SERVICENAME to be set." ; fi
    if [ ! -d "$DIRSERVICE" ]; then echo "The service ${SERVICENAME} does not exist.">&2 ; showservices ; exit 1 ; fi
    
    local RVALD=0
@@ -254,15 +265,15 @@ function destroy {
 # compress SOURCEFOLDER ARCHIVEFOLDER ARCHIVENAME [PASS]
 function compress {
    local SOURCEFOLDER=$(realpath "$1" | tr -d '\r\n')
-   if [ $? -ne 0 ]; echo "dr function compress: Couldn't find source path $1."
+   if [ $? -ne 0 ]; then die "dr function compress: Couldn't find source path ${1}." ; fi
    local ARCHIVEFOLDER=$(realpath "$2" | tr -d '\r\n')
-   if [ $? -ne 0 ]; echo "dr function compress: Couldn't find destination path $2."
+   if [ $? -ne 0 ]; then die "dr function compress: Couldn't find destination path ${2}." ; fi
    local ARCHIVEPATH="$ARCHIVEFOLDER/$3"
    local PASSCMD=""
-   if [ -n "$4" ]; PASSCMD="-p${4}"; fi
+   if [ -n "$4" ]; then PASSCMD="-p${4}"; fi
    
    tar cf - -C "$SOURCEFOLDER" . | 7za a -si "${PASSCMD}" "$ARCHIVEPATH" > /dev/null
-   if [ $? -ne 0 ]; then echo "Failed to create archive of $SOURCEFOLDER">&2 ; exit 1 ; fi
+   if [ $? -ne 0 ]; then die "Failed to create archive of $SOURCEFOLDER" ; fi
 }
 
 # decompress DESTFOLDER ARCHIVEFOLDER ARCHIVENAME [PASS]
@@ -271,20 +282,20 @@ function decompress {
    local ARCHIVEFOLDER=$(realpath "$2" | tr -d '\r\n')
    local ARCHIVEPATH="$ARCHIVEFOLDER/$3"
 
-   if [ ! -e "$ARCHIVEPATH" ]; then echo "dr function decompress: No such archive: $ARCHIVEPATH">&2 ; exit 1 ; fi
-   if [ ! -d "$DESTFOLDER" ]; then echo "dr function decompress: Destination folder does not exist: $DESTFOLDER">&2 ; exit 1 ; fi
+   if [ ! -e "$ARCHIVEPATH" ]; then die "dr function decompress: No such archive: $ARCHIVEPATH"; fi
+   if [ ! -d "$DESTFOLDER" ]; then die "dr function decompress: Destination folder does not exist: $DESTFOLDER"; fi
    local PASSCMD=""
-   if [ -n "$4" ]; PASSCMD="-p${4}"; fi
+   if [ -n "$4" ]; then PASSCMD="-p${4}"; fi
    
    7za x -so "${PASSCMD}" "${ARCHIVEPATH}" | tar xf - -C "${DESTFOLDER}"
-   if [ $? -ne 0 ]; then echo "Failed to decompress archive $ARCHIVEPATH . The password may be incorrect!">&2 ; exit 1 ; fi
+   if [ $? -ne 0 ]; then die "Failed to decompress archive $ARCHIVEPATH . The password may be incorrect!"; fi
 }
 
 # compressvolume VOLUMENAME ARCHIVEFOLDER ARCHIVENAME
 function compressvolume {
    local VOLUMENAME="$1"
    local ARCHIVEFOLDER=$(realpath "$2" | tr -d '\r\n')
-   if [ $? -ne 0 ]; echo "dr function compressvolume: Couldn't find destination path $2."
+   if [ $? -ne 0 ]; then die "dr function compressvolume: Couldn't find destination path $2." ; fi
    local ARCHIVENAME="$3"
    local DCNAME="dr-compressvolume"
 
@@ -299,7 +310,7 @@ function decompressvolume {
    local VOLUMENAME="$1"
    local ARCHIVEFOLDER=$(realpath "$2" | tr -d '\r\n')
    local ARCHIVENAME="$3"
-   if [ ! -e "$ARCHIVEFOLDER/$ARCHIVENAME" ]; then echo "dr function decompressvolume: Couldn't find archive $ARCHIVENAME">&2 ; exit 1 ; fi
+   if [ ! -e "$ARCHIVEFOLDER/$ARCHIVENAME" ]; then die "dr function decompressvolume: Couldn't find archive $ARCHIVENAME" ; fi
    local DCNAME="dr-decompressvolume"
 
    # destroy any pre-existing data!
@@ -316,7 +327,7 @@ function decompressvolume {
 # backup BACKUPFILE
 function backup {
    local BACKUPFILE=$(realpath "$1" | tr -d '\r\n')
-   if [ -e "$BACKUPFILE" ]; then echo "$BACKUPFILE already exists. Aborting." ; exit 1 ; fi
+   if [ -e "$BACKUPFILE" ]; then die "$BACKUPFILE already exists. Aborting." ; fi
    
    local TEMPROOT="$(mktemp -d)"
    local TEMPPARENT="${TEMPROOT}/backup"
@@ -342,7 +353,7 @@ function backup {
    compress "$TEMPPARENT" "$TEMPROOT" "${BACKUP_MAIN}" "$PASS"
    mv "${TEMPROOT}/${BACKUP_MAIN}" "$BACKUPFILE"
 
-   rm -r ${TEMPROOT}   
+   rm -r "${TEMPROOT}"   
    echo "Backed up to $BACKUPFILE succesfully.">&2
 }
 
@@ -351,8 +362,8 @@ function backup {
 # restore BACKUPFILE
 function restore {
    local BACKUPFILE=$(realpath "$1" | tr -d '\r\n')
-   if [ ! -e "$BACKUPFILE" ]; then echo "$BACKUPFILE doesn't exist. Aborting." ; exit 1 ; fi
-   if [ ! -e "$DIRSERVICE" ]; then echo "$SERVICENAME exists - destroy it before restoring from backup." ; exit 1 ; fi
+   if [ ! -e "$BACKUPFILE" ]; then die "$BACKUPFILE doesn't exist. Aborting." ; fi
+   if [ ! -e "$DIRSERVICE" ]; then die "$SERVICENAME exists - destroy it before restoring from backup." ; fi
    
    local TEMPROOT="$(mktemp -d)"
    local TEMPPARENT="${TEMPROOT}/backup"
@@ -368,7 +379,7 @@ function restore {
    # check backup has key files.
    local KEYFILES=("${TEMPF}/${BACKUP_HOSTZIP}" "${TEMPF}/${BACKUP_VOLZIP}" "${TEMPPARENT}/imagename.txt")
    for NEEDEDFILE in "${KEYFILES[@]}"; do
-      if [ ! -e "$NEEDEDFILE" ]; then echo "Backup corrupt. Missing ${NEEDEDFILE}.">&2 ; exit 1 ; fi
+      if [ ! -e "$NEEDEDFILE" ]; then die "Backup corrupt. Missing ${NEEDEDFILE}."; fi
    done
    
    # set IMAGENAME - the only missing global var.
@@ -397,10 +408,10 @@ function restore {
 # retriveDIRECTORY
 function retrieveDIRECTORY {
    DIRERR="Run   dr configure DIRECTORY   before any other commands."
-   if [ ! -d "$DRETCDIR" ]; then echo "$DIRERR">&2 ; exit 1 ; fi
+   if [ ! -d "$DRETCDIR" ]; then die "$DIRERR"; fi
    DIRECTORY=$(<"${CFG_DIRECTORY}")
-   if [ -z "$DIRECTORY" ]; then echo "$DIRERR">&2 ; exit 1 ; fi
-   if [ ! -d "$DIRECTORY" ]; then echo "$DIRERR">&2 ; exit 1 ; fi
+   if [ -z "$DIRECTORY" ]; then die "$DIRERR"; fi
+   if [ ! -d "$DIRECTORY" ]; then die "$DIRERR"; fi
 }
 
 #------------------------------------------------------------------------------------
@@ -408,15 +419,15 @@ function retrieveDIRECTORY {
 # setglobals
 function setglobals {
    # expects SERVICENAME to be set.
-   if [ -z "$SERVICENAME" ]; then "setglobals requires SERVICENAME to be set first.">&2 ; exit 1 ; fi
+   if [ -z "$SERVICENAME" ]; then die "setglobals requires SERVICENAME to be set first." ; fi
    retrieveDIRECTORY
 
    DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
    if [ ! -d "$DIRSERVICE" ]; then echo "The service ${SERVICENAME} does not exist.">&2 ; showservices ; exit 1 ; fi
 
-   if [ ! -e "${DIRSERVICE}/${CFG_IMAGENAME}" ]; then echo "Error - ${CFG_IMAGENAME} doesn't exist.">&2 ; exit 1 ; fi
+   if [ ! -e "${DIRSERVICE}/${CFG_IMAGENAME}" ]; then die "Error - ${CFG_IMAGENAME} doesn't exist."; fi
    IMAGENAME=$(<"${DIRSERVICE}/${CFG_IMAGENAME}")
-   if [ -z "$IMAGENAME" ]; then echo "Error - ${CFG_IMAGENAME} is empty.">&2 ; exit 1 ; fi
+   if [ -z "$IMAGENAME" ]; then die "Error - ${CFG_IMAGENAME} is empty." ; fi
 }
 
 #------------------------------------------------------------------------------------
@@ -427,7 +438,7 @@ if ! command_exists docker ; then
    echo "(e.g. use  https://github.com/j842/scripts/blob/master/install_docker.sh )">&2
    exit 1
 fi
-if [ $(uname -rv | grep -c "Debian") -eq 0 ]; then
+if [ "$(uname -rv | grep -c Debian)" -eq 0 ]; then
    echo "This script is currently only for Debian hosts.">&2
    exit 1
 fi
@@ -452,7 +463,7 @@ case "$CMD" in
   
    "")
       showusage
-      if [ -d $DRETCDIR ]; then retrieveDIRECTORY ; showservices ; fi
+      if [ -d "$DRETCDIR" ]; then retrieveDIRECTORY ; showservices ; fi
       exit 0
       ;;
 
