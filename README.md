@@ -1,4 +1,4 @@
-# Under heavy development. Try it, don't use it.
+# Under heavy development. Try it, don't trust it!
 
 # Docker Runner
 
