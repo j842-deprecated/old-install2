@@ -23,7 +23,7 @@ set -o nounset
 # Global constants.
 readonly DRETCPATH="/etc/dr"
 readonly DR_CFG_FILE_PATH="${DRETCPATH}/dr.cfg"
-readonly SUPPORTIMAGE="j842/docker-dr"
+readonly SUPPORTIMAGE="j842/dr-support"
 readonly DRBINDIR="bin"
 readonly DRSERVICESDIR="services"
 
