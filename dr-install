@@ -12,10 +12,17 @@
 
 
 # Global constants.
-readonly DRETCDIR="/etc/dr"
-readonly DR_CFG_FILE="${DRETCDIR}/dr.cfg"
+readonly DRETCPATH="/etc/dr"
+readonly DR_CFG_FILE_PATH="${DRETCPATH}/dr.cfg"
 readonly SUPPORTIMAGE="j842/docker-dr"
 readonly DRBINDIR="bin"
+readonly DRSERVICESDIR="services"
+
+
+#------------------------------------------------------------------------------------
+
+# command_exists
+function command_exists { command -v "$1" >/dev/null 2>&1 ; }
 
 #------------------------------------------------------------------------------------
 
@@ -55,17 +62,24 @@ function copydrfiles {
       rm -r "${DRBINPATH}"
    fi
    mkdir -p "${DRBINPATH}"
+   mkdir -p "${DIRECTORY}/${DRSERVICESDIR}"
    
-   # assumes docker image does not use entrypoint. Could instead override entrypoint maybe.
-   docker run --rm -it -v "${DRBINPATH}:/tempcopy" "${SUPPORTIMAGE}" /bin/bash -c "cp -a /dr/* /tempcopy/"                             
+   # allow normal user in container to add content to DRBINPATH.
+   chmod a+rwx "${DRBINPATH}"
+   docker run --rm -it -v "${DRBINPATH}:/tempcopy" "${SUPPORTIMAGE}" /bin/bash -c "cp /dr/* /tempcopy/"                             
    if [ $? -ne 0 ]; then 
       echo "Failed to copy files.">&2 
       echo "You will need to reinstall Docker Runner.">&2
-      rm -r "${DIRECTORY}" "${DRETCDIR}"
+      rm -r "${DIRECTORY}" "${DRETCPATH}"
       exit 1
    fi  
+   # set safer ownership and permissions
    chown -R root:root "${DRBINPATH}"
    chmod -R a-w "${DRBINPATH}"
+
+   local DREXEC="/usr/local/bin/dr"
+   if [ -e "$DREXEC" ]; then rm "$DREXEC" ; fi
+   ln -s "${DRBINPATH}/dr" "$DREXEC"
 }
 
 #------------------------------------------------------------------------------------
@@ -74,14 +88,16 @@ function copydrfiles {
 function configure {
    if [ -z $1 ]; then echo "dr-install requires directory argument.">&2 ; exit 1 ; fi
    DIRECTORY="$1"
-   mkdir -p "$DRETCDIR"   # ensure directrory exists.   
+   mkdir -p "$DRETCPATH"   # ensure directrory exists.   
    DATESTAMP="$(LC_ALL=C date -u +"%a, %d %b %Y %X %z")"
 
-cat <<EOF >"${DR_CFG_FILE}"
+cat <<EOF >"${DR_CFG_FILE_PATH}"
 # Docker Runner configuration file.
 # Last modified ${DATESTAMP}
 
-DIRECTORY=${DIRECTORY}
+readonly DIRECTORY="${DIRECTORY}"
+readonly DRSERVICESPATH="${DIRECTORY}/${DRSERVICESDIR}"
+readonly SUPPORTIMAGE="${SUPPORTIMAGE}"
 EOF
    
    # creates DIRECTORY and populates the bin folder from SUPPORTIMAGE.
@@ -90,7 +106,7 @@ EOF
    # set up standard docker user and group for containers.
    # groupadd -g 22022 "$DRGROUP"
    # adduser --disabled-password --gecos '' -u 22022 --gid 22022 "$DRUSER"
-   
+      
    echo "Configuration complete, Docker Runner is ready to use! Try running  dr  now." >&2
 }
 
