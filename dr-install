@@ -66,7 +66,7 @@ function copydrfiles {
    
    # allow normal user in container to add content to DRBINPATH.
    chmod a+rwx "${DRBINPATH}"
-   docker run --rm -it -v "${DRBINPATH}:/tempcopy" "${SUPPORTIMAGE}" /bin/bash -c "cp /dr/* /tempcopy/"                             
+   docker run --rm -it -v "${DRBINPATH}:/tempcopy" "${SUPPORTIMAGE}" /bin/bash -c "cp -r /dr/* /tempcopy/"                             
    if [ $? -ne 0 ]; then 
       echo "Failed to copy files.">&2 
       echo "You will need to reinstall Docker Runner.">&2
@@ -98,6 +98,7 @@ cat <<EOF >"${DR_CFG_FILE_PATH}"
 readonly ROOTPATH="${ROOTPATH}"
 readonly DRSERVICESPATH="${ROOTPATH}/${DRSERVICESDIR}"
 readonly SUPPORTIMAGE="${SUPPORTIMAGE}"
+readonly DRBINPATH=${ROOTPATH}/${DRBINDIR}
 EOF
    
    # creates ROOTPATH and populates the bin folder from SUPPORTIMAGE.
