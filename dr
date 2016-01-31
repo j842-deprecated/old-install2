@@ -44,6 +44,10 @@ function die {
    fi
    exit 1
 }
+function dieusage {
+   echo "Usage:">&2
+   die "   $1"
+}
 
 #------------------------------------------------------------------------------------
 
@@ -87,8 +91,8 @@ SYNOPSIS
    dr update SERVICENAME
    dr destroy SERVICENAME
 
-   PASS=? dr backup SERVICENAME BACKUPFILE
-   PASS=? dr restore SERVICENAME BACKUPFILE
+   [PASS=?] dr backup SERVICENAME BACKUPFILE
+   [PASS=?] dr restore SERVICENAME BACKUPFILE
    
    dr SERVICENAME
    dr SERVICENAME enter
@@ -462,8 +466,12 @@ CMD="$1" ; shift
 
 case "$CMD" in
    configure)
-      DIRECTORY="$1"
-      configure
+      if [ "$1" ]; then
+         DIRECTORY="$1"
+         configure
+      else
+         dieusage "dr configure DIRECTORY"
+      fi
       ;;
   
    "")
@@ -478,24 +486,36 @@ case "$CMD" in
       ;;
           
    install)
-      IMAGENAME="$1"
-      SERVICENAME="$2"
-      retrieveDIRECTORY
-      DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
-      install
+      if [ "$1" ] && [ "$2" ]; then
+         IMAGENAME="$1"
+         SERVICENAME="$2"
+         retrieveDIRECTORY
+         DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
+         install
+      else
+         dieusage "dr install IMAGENAME SERVICENAME"
+      fi
       ;;
       
    update)
-      SERVICENAME="$1"
-      setglobals
-      copydrfiles
+      if [ "$1" ]; then
+         SERVICENAME="$1"
+         setglobals
+         copydrfiles
+      else
+         dieusage "dr update SERVICENAME"
+      fi         
       ;;
       
    # dr backup SERVICENAME BACKUPFILE
    backup)
-      SERVICENAME="$1"
-      setglobals
-      backup "$2"
+      if [ "$1" ] && [ "$2" ]; then
+         SERVICENAME="$1"
+         setglobals
+         backup "$2"
+      else
+         dieusage "[PASS=?] dr backup SERVICENAME BACKUPFILE"
+      fi
       ;;
      
    # dr restore SERVICENAME BACKUPFILE
@@ -506,8 +526,7 @@ case "$CMD" in
          DIRSERVICE="${DIRECTORY}/${SERVICENAME}"
          restore "$2"
       else
-         echo "Usage:">&2
-         die "   dr restore SERVICENAME BACKUPFILE"
+         dieusage "[PASS=?] dr restore SERVICENAME BACKUPFILE"
       fi
       ;;
       
@@ -519,9 +538,13 @@ case "$CMD" in
    #--------------------------         
       
    destroy)
-      SERVICENAME="$1" ; shift
-      setglobals
-      destroy 
+      if [ "$1" ]; then
+         SERVICENAME="$1" ; shift
+         setglobals
+         destroy 
+      else
+         dieusage "dr destroy SERVICENAME"
+      fi
       ;;
       
    
