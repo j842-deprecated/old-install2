@@ -50,19 +50,8 @@ Install and try the [helloworld](https://github.com/j842/docker-dr-helloworld) e
     helloworld run
 ```
 
-#### SimpleSecrets
-
-Install and configure [simplesecrets](https://github.com/j842/docker-simplesecrets):
-```
-    dr simplesecrets install j842/simplesecrets
-    S3KEY=abcde S3SECRET=1234 BUCKET=mybucket simplesecrets configure
-```
-    
-Store secrets in S3:
-```
-    simplesecrets store < myfile
-    PASS=? simplesecrets retrieve NAME
-```
+Other images to try:
+* [simplesecrets](https://github.com/j842/docker-simplesecrets) - store low sercurity secrets in S3.
 
 ## General Use
 
