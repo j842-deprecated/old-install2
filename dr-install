@@ -83,8 +83,6 @@ function copydrfiles {
    mkdir -p "${DRBINPATH}"
    mkdir -p "${ROOTPATH}/${DRSERVICESDIR}"
    
-   # allow normal user in container to add content to DRBINPATH.
-   chmod a+rwx "${DRBINPATH}"
    docker run --rm -it -v "${DRBINPATH}:/tempcopy" "${SUPPORTIMAGE}" /bin/bash -c "cp -r /dr/* /tempcopy/"                             
    if [ $? -ne 0 ]; then 
       echo "Failed to copy files.">&2 
@@ -94,7 +92,7 @@ function copydrfiles {
    fi  
    # set safer ownership and permissions
    chown -R root:root "${DRBINPATH}"
-   chmod -R a-w "${DRBINPATH}"
+   chmod -R 0555 "${DRBINPATH}"
 
    local DREXEC="/usr/local/bin/dr"
    if [ -e "$DREXEC" ]; then rm "$DREXEC" ; fi
