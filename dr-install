@@ -150,13 +150,6 @@ fi
 if [ "$(uname -rv | grep -c Debian)" -eq 0 ]; then
    die "This script is currently only for Debian hosts."
 fi
-# Check basic commands are available
-COMMANDS=(gpg wget md5sum)
-for NEEDEDCMD in "${COMMANDS[@]}"; do
-  if ! command_exists "${NEEDEDCMD}" ; then 
-      die "Docker Runner requires ${NEEDEDCMD}. Please install it first."
-  fi
-done
 
 if [ $# -eq 1 ]; then
    configure "$1"

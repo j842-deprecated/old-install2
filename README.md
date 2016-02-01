@@ -27,10 +27,9 @@ Features:
 
 #### Dependencies
 
-Docker Runner needs docker, gnupg and 7z. You can install them with:
+Docker Runner needs docker. You can install it with:
 ```
    wget -nv -O /tmp/install_docker.sh https://goo.gl/2cxobx ; bash /tmp/install_docker.sh
-   apt-get install -y gnupg p7zip-full
 ```
 #### Installing Docker Runner
 
