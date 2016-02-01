@@ -116,7 +116,7 @@ function configure {
    fi
    
    mkdir -p "$DRETCPATH"   # ensure directrory exists.   
-   local DATESTAMP="$(LC_ALL=C date -u +"%a, %d %b %Y %X %z")"
+   local DATESTAMP="$(TZ=Pacific/Auckland date)"
 
    # ensure we have the latest support image.
    docker pull "${SUPPORTIMAGE}"
