@@ -77,7 +77,6 @@ EOF
 # copydrfiles
 function copydrfiles {
    # the ROOTPATH that the container will update.
-   local DRBINPATH="${ROOTPATH}/${DRBINDIR}"
    if [ -d "${DRBINPATH}" ]; then
       rm -r "${DRBINPATH}"
    fi
@@ -106,8 +105,16 @@ function copydrfiles {
 
 # configure
 function configure {
-   if [ -z $1 ]; then die "dr-install requires ROOTPATH argument." ; fi
+   if [ -z "$1" ]; then die "dr-install requires ROOTPATH argument." ; fi
    ROOTPATH="$1"
+   DRBINPATH="${ROOTPATH}/${DRBINDIR}"
+   
+   UPDATE=""
+   if [ -e "${DRBINPATH}/buildtime" ]; then
+      . "${DRBINPATH}/buildtime"
+      UPDATE="${BUILDTIME}"
+   fi
+   
    mkdir -p "$DRETCPATH"   # ensure directrory exists.   
    local DATESTAMP="$(LC_ALL=C date -u +"%a, %d %b %Y %X %z")"
 
@@ -128,19 +135,25 @@ EOF
    # creates ROOTPATH and populates the bin folder from SUPPORTIMAGE.
    copydrfiles
    
-   # set up standard docker user and group for containers.
-   # groupadd -g 22022 "$DRGROUP"
-   # adduser --disabled-password --gecos '' -u 22022 --gid 22022 "$DRUSER"
-      
-   echo " ">&2
-   echo " ">&2
-   echo "Configuration complete, Docker Runner is ready to use!">&2
-   echo "Try running  dr  now." >&2
-   ehco " ">&2
+   . "${DRBINPATH}/buildtime"
+         
+   if [ -n "$UPDATE" ]; then
+      echo " ">&2
+      echo "Previous Build: ${UPDATE}">&2
+      echo "New Build:      ${BUILDTIME}">&2
+      echo " ">&2
+      echo "Update complete, Docker Runner is ready to use!">&2
+      echo " ">&2      
+   else
+      echo " ">&2
+      echo " ">&2
+      echo "Installation complete, Docker Runner is ready to use!">&2
+      echo "Try running  dr  now." >&2
+      echo " ">&2
+   fi
 }
 
 #------------------------------------------------------------------------------------
-
 
 # MAIN
 
@@ -155,13 +168,9 @@ if [ "$(uname -rv | grep -c Debian)" -eq 0 ]; then
    die "This script is currently only for Debian hosts."
 fi
 
-if [ $# -eq 1 ]; then
-   configure "$1"
-else
+if [ $# -ne 1 ]; then
    showusage
-   exit 1
+   exit 1  
 fi
-   
 
-
-
+configure "$1"
