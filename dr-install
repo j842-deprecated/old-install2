@@ -132,7 +132,11 @@ EOF
    # groupadd -g 22022 "$DRGROUP"
    # adduser --disabled-password --gecos '' -u 22022 --gid 22022 "$DRUSER"
       
-   echo "Configuration complete, Docker Runner is ready to use! Try running  dr  now." >&2
+   echo " ">&2
+   echo " ">&2
+   echo "Configuration complete, Docker Runner is ready to use!">&2
+   echo "Try running  dr  now." >&2
+   ehco " ">&2
 }
 
 #------------------------------------------------------------------------------------
