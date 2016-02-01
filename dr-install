@@ -35,6 +35,17 @@ function command_exists { command -v "$1" >/dev/null 2>&1 ; }
 
 #------------------------------------------------------------------------------------
 
+# die MESSAGE 
+function die {
+   if [ "$#" -eq 1 ]; then
+      echo "$1" <&2
+   else
+      echo "Unexpected error. Exiting."<&2
+   fi
+   exit 1
+}
+
+#------------------------------------------------------------------------------------
 
 # showusage
 function showusage {
@@ -95,14 +106,14 @@ function copydrfiles {
 
 # configure
 function configure {
-   if [ -z $1 ]; then echo "dr-install requires ROOTPATH argument.">&2 ; exit 1 ; fi
+   if [ -z $1 ]; then die "dr-install requires ROOTPATH argument." ; fi
    ROOTPATH="$1"
    mkdir -p "$DRETCPATH"   # ensure directrory exists.   
    local DATESTAMP="$(LC_ALL=C date -u +"%a, %d %b %Y %X %z")"
 
    # ensure we have the latest support image.
    docker pull "${SUPPORTIMAGE}"
-   if [ "$?" -ne 0 ]; then echo "Unable to pull required Docker image ${SUPPORTIMAGE}." ; exit 1 ; fi
+   if [ "$?" -ne 0 ]; then die "Unable to pull required Docker image ${SUPPORTIMAGE}." ; fi
 
 cat <<EOF >"${DR_CFG_FILE_PATH}"
 # Docker Runner configuration file.
@@ -137,15 +148,13 @@ if ! command_exists docker ; then
    exit 1
 fi
 if [ "$(uname -rv | grep -c Debian)" -eq 0 ]; then
-   echo "This script is currently only for Debian hosts.">&2
-   exit 1
+   die "This script is currently only for Debian hosts."
 fi
 # Check basic commands are available
 COMMANDS=(gpg wget md5sum)
 for NEEDEDCMD in "${COMMANDS[@]}"; do
   if ! command_exists "${NEEDEDCMD}" ; then 
-      echo "Docker Runner requires ${NEEDEDCMD} to be available for scripts." >&2 
-      exit 1 
+      die "Docker Runner requires ${NEEDEDCMD}. Please install it first."
   fi
 done
 
