@@ -50,6 +50,15 @@ Install and try the [helloworld](https://github.com/j842/docker-dr-helloworld) e
     helloworld run
 ```
 
+Back up helloworld to an encrypted archive (including all settings and local data), 
+restore the backup as hithere, and run it:
+```
+   PASS=shh helloworld backup helloworld.backup
+   helloworld destroy   
+   PASS=ssh hithere restore helloworld.backup
+   hithere run
+```
+
 Other images to try:
 * [simplesecrets](https://github.com/j842/docker-simplesecrets) - store low sercurity secrets in S3.
 
