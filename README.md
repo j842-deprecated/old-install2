@@ -53,9 +53,9 @@ Install and try the [helloworld](https://github.com/j842/docker-dr-helloworld) e
 Back up helloworld to an encrypted archive (including all settings and local data), 
 restore the backup as hithere, and run it:
 ```
-   PASS=shh helloworld backup helloworld.backup
+   PASS=shh dr helloworld backup helloworld.backup
    helloworld destroy   
-   PASS=ssh hithere restore helloworld.backup
+   PASS=ssh dr hithere restore helloworld.backup
    hithere run
 ```
 
