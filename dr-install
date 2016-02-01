@@ -100,6 +100,10 @@ function configure {
    mkdir -p "$DRETCPATH"   # ensure directrory exists.   
    local DATESTAMP="$(LC_ALL=C date -u +"%a, %d %b %Y %X %z")"
 
+   # ensure we have the latest support image.
+   docker pull "${SUPPORTIMAGE}"
+   if [ "$?" -ne 0 ]; then echo "Unable to pull required Docker image ${SUPPORTIMAGE}." ; exit 1 ; fi
+
 cat <<EOF >"${DR_CFG_FILE_PATH}"
 # Docker Runner configuration file.
 # Last modified ${DATESTAMP}
@@ -137,14 +141,10 @@ if [ "$(uname -rv | grep -c Debian)" -eq 0 ]; then
    exit 1
 fi
 # Check basic commands are available
-COMMANDS=(gpg wget md5sum 7z 7za)
+COMMANDS=(gpg wget md5sum)
 for NEEDEDCMD in "${COMMANDS[@]}"; do
   if ! command_exists "${NEEDEDCMD}" ; then 
       echo "Docker Runner requires ${NEEDEDCMD} to be available for scripts." >&2 
-      echo "After Docker is installed, install all other dependencies with: ">&2 
-      echo " ">&2
-      echo "apt-get install -y gnupg p7zip-full">&2 
-      echo " ">&2
       exit 1 
   fi
 done
