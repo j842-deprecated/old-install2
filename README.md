@@ -131,13 +131,13 @@ In additiont to /dr/volumes, the container image must include a path /dr contain
 /dr/enter          -- get bash shell in container
 ```
 
-Each of these bash scripts should begin by sourcing a _variables file that will appear in the same directory when installed, i.e. start with
+Each of these bash scripts should begin by sourcing a _variables file in the same directory, i.e.
 ```
 #!/bin/bash
 source "$( dirname "$(readlink -f "$0")" )/_variables"
 ```
 
-This sets several variables:
+This file is created by dr when the service is installed and it sets several variables:
 ```
 VOLUMES      Array of paths (as defined in the volumes file)
 DOCKERVOLS   Array of the corresponding docker volume names
