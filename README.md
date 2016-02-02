@@ -11,11 +11,11 @@ or deal with long docker run commands.
 Features:
 * dr compatible Docker Images are self contained - everything dr needs is inside
 * Simple discoverable commands for using compatible services (no manual needed)
-* Flexible configuration for each service, stored in a Docker Volume container that's managed for you
+* Flexible configuration for each service, stored in Docker Volume containers that are managed for you
 * Services can consist of any number of containers
-* Backup a service to a single file, trivially restore on another machine
+* Backup an entire service to a single file, trivially restore on another machine
 * Destroying a service leaves the machine in a clean state, no cruft left
-* Containers run as non-root user
+* Everything in containers is run as a non-root user
 * Trivial to install a service multiple times with different configurations (e.g. mulitple minecraft servers)
 * Ansible friendly for automation (see [Exit Codes](https://github.com/j842/dr#exit-codes) below).
 
@@ -46,19 +46,19 @@ Now you're ready to try things.
 
 Install and try the [helloworld](https://github.com/j842/docker-dr-helloworld) example:
 ```
-    dr helloworld install j842/dr-helloworld
-    helloworld run
+    dr hi install j842/dr-helloworld
+    hi run
 ```
 
 Back up helloworld to an encrypted archive (including all settings and local data), 
 then destroy it, leaving the machine clean:
 ```
-   PASS=shh dr helloworld backup helloworld.backup
-   helloworld destroy
+   PASS=shh dr hi backup hi.backup
+   hi destroy
 ```
 Restore the backup as hithere, and run it:
 ```   
-   PASS=ssh dr hithere restore helloworld.backup
+   PASS=ssh dr hithere restore hi.backup
    hithere run
 ```
 
@@ -96,7 +96,7 @@ PASS=? dr SERVICENAME restore BACKUPFILE  -- restore container, configuration an
 
 ## Example
 
-For an example see: https://github.com/j842/docker-dr-helloworld
+For an example/template see: https://github.com/j842/docker-dr-helloworld
 
 ## User
 
@@ -105,38 +105,57 @@ dr requires the Dockerfile to create a non-root user and siwtch to it with the U
 can set up and use sudo in the container, but you can't run as root (for security). Use different UIDs for
 different services to help with container isolation.
 
-## Standard Configuration Volume
+## Volumes
 
-The container must expose /config as a Volume. A Docker volume container is always created by dr as
-dr-SERVICENAME-config and mounted in /config with option:
-```
--v "dr-${SERVICENAME}-config:/config" 
-```
-This option needs to be in any scripts in /dr/host that launch the container. It is automatically
-included in backup and restore operations.
+The container must include the file /dr/volumes. This file is read by bash and defines an array of
+the paths to map as volume containers. See [helloworld](https://github.com/j842/dr-helloworld/blob/master/dr/volumes) for an example.
+
+See below for how to mount these containers when you run commands.
 
 ## Backup/Restore 
-You can backup and restore services. The backup is generally fully self contained, so can be restored to a different host!
+You can backup and restore services. The backup is generally self contained, so can be restored to a different host.
 (There may be external resources needed by the service, but for many its got everything. See the specific container for what it supports.).
 
-Backup and restore of the standard configuration volume is managed by dr, the backup/restore scripts provided by the image
-handle any other volume containers needed.
+Backup and restore of the volumes defined by /dr/volumes are managed by dr. The backup/restore scripts provided by the image
+handle any other actions needed (such as dumping a database to a file).
 
 ## Files Required
 
-The container image must include a path /dr containing the following scripts that can be run on the host:
+In additiont to /dr/volumes, the container image must include a path /dr containing the following scripts that can be run on the host:
 ```
-/dr/install SERVICENAME IMAGE        -- automatically run on host when installed
-/dr/destroy SERVICENAME IMAGE        -- automatically run on host when destroyed
-/dr/help    SERVICENAME IMAGE        -- show help for commands available
-/dr/backup  SERVICENAME IMAGE PATH   -- backup to files in PATH
-/dr/restore SERVICENAME IMAGE PATH   -- restore from files in PATH
-/dr/enter   SERVICENAME IMAGE        -- get bash shell in container
+/dr/install         -- automatically run on host when installed
+/dr/destroy         -- automatically run on host when destroyed
+/dr/help            -- show help for commands available
+/dr/backup  PATH   -- backup to files in PATH
+/dr/restore PATH   -- restore from files in PATH
+/dr/enter          -- get bash shell in container
+```
+
+Each of these bash scripts should begin by sourcing a _variables file that will appear in the same directory when installed, i.e. start with
+```
+#!/bin/bash
+source "$( dirname "$(readlink -f "$0")" )/_variables"
+```
+
+This sets several variables:
+```
+VOLUMES      Array of paths (as defined in the volumes file)
+DOCKERVOLS   Array of the corresponding docker volume names
+DOCKEROPTS   Array of the -v options to pass to docker to mount the volumes
+SERVICENAME  Name of the service
+IMAGENAME    Name of the docker image (e.g. j842/dr-helloworld)
+INSTALLTIME  Datestamp for when the service was installed on the host
+```
+
+Using DOCKEROPTS, you can then run Docker like this from your /dr/ scripts:
+```
+docker run -i -t --name="mydocker" ${DOCKEROPTS[@]} ${IMAGENAME} echo "whee!"
+docker rm "mydocker"
 ```
 
 ### Additional commands
 
-You can also add any other command that would be useful, e.g. run, configure etc.
+You can also add any other command (bash script) that would be useful, e.g. run, configure etc.
 ```
 /dr/ANOTHERCMD SERVICENAME IMAGE [ARGS...]  -- any other command needed.
 ```
