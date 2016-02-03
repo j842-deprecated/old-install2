@@ -117,8 +117,10 @@ function configure {
    local DATESTAMP="$(TZ=Pacific/Auckland date)"
 
    # ensure we have the latest support image.
-   docker pull "${SUPPORTIMAGE}"
-   if [ "$?" -ne 0 ]; then die "Unable to pull required Docker image ${SUPPORTIMAGE}." ; fi
+   if [ "$PULLONUPDATE" -eq 1 ]; then
+      docker pull "${SUPPORTIMAGE}"
+      if [ "$?" -ne 0 ]; then die "Unable to pull required Docker image ${SUPPORTIMAGE}." ; fi
+   fi
 
 cat <<EOF >"${DR_CFG_FILE_PATH}"
 # Docker Runner configuration file.
@@ -128,6 +130,7 @@ readonly ROOTPATH="${ROOTPATH}"
 readonly DRSERVICESPATH="${ROOTPATH}/${DRSERVICESDIR}"
 readonly SUPPORTIMAGE="${SUPPORTIMAGE}"
 readonly DRBINPATH=${ROOTPATH}/${DRBINDIR}
+readonly PULLONUPDATE=${PULLONUPDATE}
 EOF
    
    # creates ROOTPATH and populates the bin folder from SUPPORTIMAGE.
@@ -166,9 +169,14 @@ if [ "$(uname -rv | grep -c Debian)" -eq 0 ]; then
    die "This script is currently only for Debian hosts."
 fi
 
-if [ $# -ne 1 ]; then
+if [ $# -ne 1 ] && [ $# -ne 2 ]; then
    showusage
    exit 1  
+fi
+
+PULLONUPDATE=1
+if [ $# -eq 2 ]; then
+  PULLONUPDATE="$2"
 fi
 
 configure "$1"
