@@ -105,10 +105,15 @@ dr requires the Dockerfile to create a non-root user and siwtch to it with the U
 can set up and use sudo in the container, but you can't run as root (for security). Use different UIDs for
 different services to help with container isolation.
 
-## Volumes
+## Service Configuration File
 
-The container must include the file /dr/volumes. This file is read by bash and defines an array of
-the paths to map as volume containers. See [helloworld](https://github.com/j842/dr-helloworld/blob/master/dr/volumes) for an example.
+The container must include the file 
+```
+/dr/service.cfg     -- define VOLUMES and EXTRACONTAINERS
+```
+This file is read by bash and defines an array ofthe paths to map as volume containers. It also
+defines any additional containers that should be pulled on update (using the Docker Hub name).
+See [helloworld](https://github.com/j842/dr-helloworld/blob/master/dr/volumes) for an example.
 
 See below for how to mount these containers when you run commands.
 
@@ -123,9 +128,9 @@ handle any other actions needed (such as dumping a database to a file).
 
 In additiont to /dr/volumes, the container image must include a path /dr containing the following scripts that can be run on the host:
 ```
-/dr/install         -- automatically run on host when installed
-/dr/destroy         -- automatically run on host when destroyed
-/dr/help            -- show help for commands available
+/dr/install        -- automatically run on host when installed
+/dr/destroy        -- automatically run on host when destroyed
+/dr/help           -- show help for commands available
 /dr/backup  PATH   -- backup to files in PATH
 /dr/restore PATH   -- restore from files in PATH
 /dr/enter          -- get bash shell in container
@@ -156,8 +161,9 @@ docker rm "mydocker"
 ### Additional commands
 
 You can also add any other command (bash script) that would be useful, e.g. run, configure etc.
+Also source _variables from these if you wish.
 ```
-/dr/ANOTHERCMD SERVICENAME IMAGE [ARGS...]  -- any other command needed.
+/dr/ANOTHERCMD [ARGS...]  -- any other command needed.
 ```
 
 Those commands are invoked from the host with
