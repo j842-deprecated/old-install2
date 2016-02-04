@@ -113,7 +113,7 @@ The container must include the file
 ```
 This file is read by bash and defines an array ofthe paths to map as volume containers. It also
 defines any additional containers that should be pulled on update (using the Docker Hub name).
-See [helloworld](https://github.com/j842/dr-helloworld/blob/master/dr/volumes) for an example.
+See [helloworld](https://github.com/j842/dr-helloworld/blob/master/dr/service.cfg) for an example.
 
 See below for how to mount these containers when you run commands.
 
