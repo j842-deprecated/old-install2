@@ -168,7 +168,7 @@ if [ "$(uname -rv | grep -c Debian)" -eq 0 ]; then
    die "This script is currently only for Debian hosts."
 fi
 
-if [ $# -ne 1 ] && [ $# -ne 2 ]; then
+if [ $# -gt 2 ]; then
    showusage
    exit 1  
 fi
