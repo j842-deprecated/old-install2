@@ -168,11 +168,11 @@ if [ "$(uname -rv | grep -c Debian)" -eq 0 ]; then
    die "This script is currently only for Debian hosts."
 fi
 
-if [ $# -gt 2 ]; then
+if [ "$#" -gt 2 ]; then
    showusage
    exit 1  
 fi
 
-PULLONUPDATE={$2:-"1"}
-ROOTPATH={$1:-"/opt/drunner"}
+PULLONUPDATE=${2:-"1"}
+ROOTPATH=${1:-"/opt/drunner"}
 configure
