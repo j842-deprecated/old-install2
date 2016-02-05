@@ -138,6 +138,8 @@ EOF
          
    if [ -n "$UPDATE" ]; then
       echo " ">&2
+      echo "Updated with ${SUPPORTIMAGE}">&2
+      echo " ">&2
       echo "Previous Build: ${UPDATE}">&2
       echo "New Build:      ${BUILDTIME}">&2
       echo " ">&2
