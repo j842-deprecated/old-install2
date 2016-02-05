@@ -1,15 +1,15 @@
 ## Under development. Try it, don't trust it!
 
-# Docker Runner
+# dRunner
 
-Docker Runner (dr) is a script and a set of conventions to make it easy to install, 
+dRunner is a script and a set of conventions to make it easy to install, 
 configure and use Docker containers. 
 
-Docker Runner eliminates the need to separately store and manage scripts to use the Docker container, 
+dRunner eliminates the need to separately store and manage scripts to use the Docker container, 
 or deal with long docker run commands.
 
 Features:
-* dr compatible Docker Images are self contained - everything dr needs is inside
+* dRunner compatible Docker Images are self contained - everything dRunner needs is inside
 * Simple discoverable commands for using compatible services (no manual needed)
 * Flexible configuration for each service, stored in Docker Volume containers that are managed for you
 * Services can consist of any number of containers
@@ -18,6 +18,7 @@ Features:
 * Everything in containers is run as a non-root user
 * Trivial to install a service multiple times with different configurations (e.g. mulitple minecraft servers)
 * Ansible friendly for automation (see [Exit Codes](https://github.com/j842/dr#exit-codes) below).
+* Footprint: servicedir, /usr/local/bin, /etc/dr
 
 # Usage
 
@@ -27,13 +28,13 @@ Features:
 
 #### Dependencies
 
-Docker Runner needs docker. You can install it with:
+dRunner needs docker. You can install it with:
 ```
    wget -nv -O /tmp/install_docker.sh https://goo.gl/2cxobx ; bash /tmp/install_docker.sh
 ```
 #### Installing Docker Runner
 
-Install dr on the host by downloading the install script:
+Install dRunner on the host by downloading the install script:
 ```
     wget https://raw.githubusercontent.com/j842/dr/master/dr-install
     bash dr-install /opt/dr
