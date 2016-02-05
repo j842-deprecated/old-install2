@@ -12,7 +12,7 @@ set -o nounset
 #                                                                                                                          
 #                                                                            
 #
-#  Docker Runner installer
+#  dRunner installer
 #  Manage docker containers in a simple and consistent way.
 #  
 #  See:
@@ -53,17 +53,17 @@ function showusage {
 cat <<'EOF' >&2
 
 NAME
-   dr-install - install the Docker Runner framework
+   drunner-install - install the dRunner framework
     
 SYNOPSIS
-   dr-install ROOTPATH
+   drunner-install [ROOTPATH]
 
 DESCRIPTION
    Docker Runner Provides a standard way to manage and run containers.
    This script installs Docker Runner on a Debian system, with all files
-   stored under ROOTPATH, e.g. /opt/dr.
+   stored under ROOTPATH, which defaults to /opt/drunner.
    
-   See https://github.com/j842/dr
+   See https://github.com/j842/drunner
    
 EXIT CODE
    0   - success
@@ -104,8 +104,6 @@ function copydrfiles {
 
 # configure
 function configure {
-   if [ -z "$1" ]; then die "dr-install requires ROOTPATH argument." ; fi
-   ROOTPATH="$1"
    DRBINPATH="${ROOTPATH}/${DRBINDIR}"
    
    UPDATE=""
@@ -175,9 +173,6 @@ if [ $# -ne 1 ] && [ $# -ne 2 ]; then
    exit 1  
 fi
 
-PULLONUPDATE=1
-if [ $# -eq 2 ]; then
-  PULLONUPDATE="$2"
-fi
-
-configure "$1"
+PULLONUPDATE={$2:-"1"}
+ROOTPATH={$1:-"/opt/drunner"}
+configure
