@@ -37,7 +37,7 @@ dRunner needs docker. You can install it with:
 Install dRunner on the host by downloading the install script:
 ```
     wget https://raw.githubusercontent.com/j842/dr/master/drunner-install
-    bash drunner-install /opt/drunner
+    bash drunner-install
 ```
 Now you're ready to try things.
 
@@ -47,19 +47,19 @@ Now you're ready to try things.
 
 Install and try the [helloworld](https://github.com/j842/docker-dr-helloworld) example:
 ```
-    drunner hi install dRunner/helloworld
+    drunner hi install drunner/helloworld
     hi run
 ```
 
 Back up helloworld to an encrypted archive (including all settings and local data), 
 then destroy it, leaving the machine clean:
 ```
-   PASS=shh dr hi backup hi.backup
-   hi destroy
+   PASS=shh drunner backup hi hi.backup
+   drunner destroy hi
 ```
 Restore the backup as hithere, and run it:
 ```   
-   PASS=ssh dr hithere restore hi.backup
+   PASS=ssh drrunner restore hi.backup hithere
    hithere run
 ```
 
@@ -70,7 +70,7 @@ Other images to try:
 
 Install a container (e.g. from DockerHub) that supports dr and call the service 'SERVICENAME'.
 ```
-    dr SERVICENAME install IMAGENAME 
+    drunner install IMAGENAME SERVICENAME
 ```
 
 Manage that service:
@@ -85,15 +85,15 @@ which also lists the available COMMANDs with
 
 Other commands that work on all services:
 ```
-SERVICENAME update                        -- update service scripts from container (e.g. after docker pull)
-SERVICENAME destroy                       -- destroy service and ALL data! Leaves host in clean state.
+drunner destroy SERVICENAME                    -- destroy service and ALL data! Leaves host in clean state.
+drunner update SERVICENAME                     -- update service scripts from container (and docker pull)
 
-PASS=? dr SERVICENAME backup BACKUPFILE   -- backup container, configuration and local data.
-PASS=? dr SERVICENAME restore BACKUPFILE  -- restore container, configuration and local data.
+PASS=? drunner backup SERVICENAME BACKUPFILE   -- backup container, configuration and local data.
+PASS=? drunner restore BACKUPFILE SERVICENAME  -- restore container, configuration and local data.
 ```
    
 
-# Docker Runner Compatibility
+# dRunner Compatibility
 
 ## Example
 
@@ -110,7 +110,7 @@ different services to help with container isolation.
 
 The container must include the file 
 ```
-/dr/service.cfg     -- define VOLUMES and EXTRACONTAINERS
+/drunner/service.cfg     -- define VOLUMES and EXTRACONTAINERS
 ```
 This file is read by bash and defines an array ofthe paths to map as volume containers. It also
 defines any additional containers that should be pulled on update (using the Docker Hub name).
@@ -122,19 +122,19 @@ See below for how to mount these containers when you run commands.
 You can backup and restore services. The backup is generally self contained, so can be restored to a different host.
 (There may be external resources needed by the service, but for many its got everything. See the specific container for what it supports.).
 
-Backup and restore of the volumes defined by /dr/volumes are managed by dr. The backup/restore scripts provided by the image
+Backup and restore of the volumes defined by /drunner/volumes are managed by dr. The backup/restore scripts provided by the image
 handle any other actions needed (such as dumping a database to a file).
 
 ## Files Required
 
 In additiont to /dr/volumes, the container image must include a path /dr containing the following scripts that can be run on the host:
 ```
-/dr/install        -- automatically run on host when installed
-/dr/destroy        -- automatically run on host when destroyed
-/dr/help           -- show help for commands available
-/dr/backup  PATH   -- backup to files in PATH
-/dr/restore PATH   -- restore from files in PATH
-/dr/enter          -- get bash shell in container
+/drunner/install        -- automatically run on host when installed
+/drunner/destroy        -- automatically run on host when destroyed
+/drunner/help           -- show help for commands available
+/drunner/backup  PATH   -- backup to files in PATH
+/drunner/restore PATH   -- restore from files in PATH
+/drunner/enter          -- get bash shell in container
 ```
 
 Each of these bash scripts should begin by sourcing a _variables file in the same directory, i.e.
@@ -164,7 +164,7 @@ docker rm "mydocker"
 You can also add any other command (bash script) that would be useful, e.g. run, configure etc.
 Also source _variables from these if you wish.
 ```
-/dr/ANOTHERCMD [ARGS...]  -- any other command needed.
+/drunner/ANOTHERCMD [ARGS...]  -- any other command needed.
 ```
 
 Those commands are invoked from the host with
