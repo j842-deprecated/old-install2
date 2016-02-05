@@ -16,7 +16,7 @@ set -o nounset
 #  Manage docker containers in a simple and consistent way.
 #  
 #  See:
-#    https://github.com/j842/dr
+#    https://github.com/j842/drunner
 #
 # ------------------------------------------------------------------
 
