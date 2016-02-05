@@ -59,8 +59,8 @@ SYNOPSIS
    drunner-install [ROOTPATH]
 
 DESCRIPTION
-   Docker Runner Provides a standard way to manage and run containers.
-   This script installs Docker Runner on a Debian system, with all files
+   dRunner Provides a standard way to manage and run containers.
+   This script installs dRunner on a Debian system, with all files
    stored under ROOTPATH, which defaults to /opt/drunner.
    
    See https://github.com/j842/drunner
@@ -87,7 +87,7 @@ function copydrfiles {
    docker run --rm -it -v "${DRBINPATH}:/tempcopy" "${SUPPORTIMAGE}" /bin/bash -c "cp -r /dr/* /tempcopy/"                             
    if [ $? -ne 0 ]; then 
       echo "Failed to copy files.">&2 
-      echo "You will need to reinstall Docker Runner.">&2
+      echo "You will need to reinstall dRunner.">&2
       rm -r "${ROOTPATH}" "${DRETCPATH}"
       exit 1
    fi  
@@ -142,12 +142,12 @@ EOF
       echo "Previous Build: ${UPDATE}">&2
       echo "New Build:      ${BUILDTIME}">&2
       echo " ">&2
-      echo "Update complete, Docker Runner is ready to use!">&2
+      echo "Update complete, dRunner is ready to use!">&2
       echo " ">&2      
    else
       echo " ">&2
       echo " ">&2
-      echo "Installation complete, Docker Runner is ready to use!">&2
+      echo "Installation complete, dRunner is ready to use!">&2
       echo "Try running  dr  now." >&2
       echo " ">&2
    fi
@@ -160,7 +160,7 @@ EOF
 if [ "$EUID" -ne 0 ]; then echo "Please run as root" ; exit 1 ; fi
 
 if ! command_exists docker ; then
-   echo "Please install Docker before using Docker Runner.">&2
+   echo "Please install Docker before using dRunner.">&2
    echo "(e.g. use  https://github.com/j842/scripts/blob/master/install_docker.sh )">&2
    exit 1
 fi
