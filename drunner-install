@@ -22,9 +22,9 @@ set -o nounset
 
 
 # Global constants.
-readonly DRETCPATH="/etc/dr"
+readonly DRETCPATH="/etc/drunner"
 readonly DR_CFG_FILE_PATH="${DRETCPATH}/dr.cfg"
-readonly SUPPORTIMAGE="j842/dr-support"
+readonly SUPPORTIMAGE="j842/drunner-support"
 readonly DRBINDIR="bin"
 readonly DRSERVICESDIR="services"
 
@@ -84,7 +84,7 @@ function copydrfiles {
    mkdir -p "${DRBINPATH}"
    mkdir -p "${ROOTPATH}/${DRSERVICESDIR}"
    
-   docker run --rm -it -v "${DRBINPATH}:/tempcopy" "${SUPPORTIMAGE}" /bin/bash -c "cp -r /dr/* /tempcopy/"                             
+   docker run --rm -it -v "${DRBINPATH}:/tempcopy" "${SUPPORTIMAGE}" /bin/bash -c "cp -r /drunner/* /tempcopy/"                             
    if [ $? -ne 0 ]; then 
       echo "Failed to copy files.">&2 
       echo "You will need to reinstall dRunner.">&2
