@@ -24,7 +24,6 @@ set -o nounset
 # Global constants.
 readonly DRETCPATH="/etc/drunner"
 readonly DR_CFG_FILE_PATH="${DRETCPATH}/drunner.cfg"
-readonly SUPPORTIMAGE="drunner/support"
 readonly DRBINDIR="bin"
 readonly DRSERVICESDIR="services"
 
@@ -56,7 +55,7 @@ NAME
    drunner-install - install the dRunner framework
     
 SYNOPSIS
-   drunner-install [ROOTPATH]
+   drunner-install [ROOTPATH] [PULLONUPDATE] [SUPPORTIMAGE]
 
 DESCRIPTION
    dRunner Provides a standard way to manage and run containers.
@@ -168,11 +167,12 @@ if [ "$(uname -rv | grep -c Debian)" -eq 0 ]; then
    die "This script is currently only for Debian hosts."
 fi
 
-if [ "$#" -gt 2 ]; then
+if [ "$#" -gt 3 ]; then
    showusage
    exit 1  
 fi
 
-PULLONUPDATE=${2:-"1"}
 ROOTPATH=${1:-"/opt/drunner"}
+PULLONUPDATE=${2:-"1"}
+SUPPORTIMAGE=${3:-"drunner/support:latest"}
 configure
