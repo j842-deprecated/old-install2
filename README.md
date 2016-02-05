@@ -122,12 +122,12 @@ See below for how to mount these containers when you run commands.
 You can backup and restore services. The backup is generally self contained, so can be restored to a different host.
 (There may be external resources needed by the service, but for many its got everything. See the specific container for what it supports.).
 
-Backup and restore of the volumes defined by /drunner/volumes are managed by dr. The backup/restore scripts provided by the image
+Backup and restore of the volumes defined by /drunner/volumes are managed by dRunner. The backup/restore scripts provided by the image
 handle any other actions needed (such as dumping a database to a file).
 
 ## Files Required
 
-In additiont to /dr/volumes, the container image must include a path /dr containing the following scripts that can be run on the host:
+In additiont to /dr/volumes, the container image must include a path /drunner containing the following scripts that can be run on the host:
 ```
 /drunner/install        -- automatically run on host when installed
 /drunner/destroy        -- automatically run on host when destroyed
