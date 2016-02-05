@@ -18,7 +18,7 @@ Features:
 * Everything in containers is run as a non-root user
 * Trivial to install a service multiple times with different configurations (e.g. mulitple minecraft servers)
 * Ansible friendly for automation (see [Exit Codes](https://github.com/j842/dr#exit-codes) below).
-* Footprint: servicedir, /usr/local/bin, /etc/dr
+* Small footprint: /opt/drunner, /etc/drunner and one script per service in /usr/local/bin
 
 # Usage
 
@@ -36,8 +36,8 @@ dRunner needs docker. You can install it with:
 
 Install dRunner on the host by downloading the install script:
 ```
-    wget https://raw.githubusercontent.com/j842/dr/master/dr-install
-    bash dr-install /opt/dr
+    wget https://raw.githubusercontent.com/j842/dr/master/drunner-install
+    bash drunner-install /opt/drunner
 ```
 Now you're ready to try things.
 
@@ -47,7 +47,7 @@ Now you're ready to try things.
 
 Install and try the [helloworld](https://github.com/j842/docker-dr-helloworld) example:
 ```
-    dr hi install j842/dr-helloworld
+    drunner hi install dRunner/helloworld
     hi run
 ```
 
