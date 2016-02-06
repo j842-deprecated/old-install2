@@ -48,13 +48,13 @@ NAME
    drunner-install - install the dRunner framework
     
 SYNOPSIS
-   drunner-install [ROOTPATH] [PULLONUPDATE] [SUPPORTIMAGE]
+   drunner-install
 
 DESCRIPTION
    dRunner Provides a standard way to manage and run containers.
    This script installs dRunner on a Debian system, with all files
    stored under ROOTPATH, which defaults to /opt/drunner.
-   
+      
    See https://github.com/j842/drunner
    
 EXIT CODE
@@ -101,7 +101,7 @@ function configure {
    UPDATE=""
    if [ -e "${ROOTPATH}/support/buildtime" ]; then
       source "${ROOTPATH}/support/buildtime"
-      UPDATE="${BUILDTIME}"
+      UPDATE="${SUPPORTBUILDTIME}"
    fi
    
    mkdir -p "/etc/drunner"   # ensure directrory exists.   
@@ -115,11 +115,14 @@ function configure {
 
 cat <<EOF >"/etc/drunner/drunner.cfg"
 # Docker Runner configuration file.
-# Last modified ${DATESTAMP}
+# You can edit this file - user changes are preserved on update.
+# Last generated ${DATESTAMP}
 
 readonly ROOTPATH="${ROOTPATH}"
 readonly SUPPORTIMAGE="${SUPPORTIMAGE}"
 readonly PULLONUPDATE=${PULLONUPDATE}
+readonly DRUNNERINSTALLURL="${DRUNNERINSTALLURL}"
+readonly DRUNNERINSTALLTIME="${DATESTAMP}"
 EOF
    
    # creates ROOTPATH and populates the bin folder from SUPPORTIMAGE.
@@ -131,8 +134,8 @@ EOF
       echo " ">&2
       echo "Updated with ${SUPPORTIMAGE}">&2
       echo " ">&2
-      echo "Previous Build: ${UPDATE}">&2
-      echo "New Build:      ${BUILDTIME}">&2
+      echo "Previous Support Build: ${UPDATE}">&2
+      echo "New Support Build:      ${SUPPORTBUILDTIME}">&2
       echo " ">&2
       echo -e "Update complete. Try running ${CODE_S}drunner${CODE_E} now." >&2
       echo " ">&2      
@@ -159,12 +162,19 @@ if [ "$(uname -rv | grep -c Debian)" -eq 0 ]; then
    die "This script is currently only for Debian hosts."
 fi
 
-if [ "$#" -gt 3 ]; then
+if [ "$#" -ne 0 ]; then
    showusage
    exit 1  
 fi
 
-ROOTPATH=${1:-"/opt/drunner"}
-PULLONUPDATE=${2:-"1"}
-SUPPORTIMAGE=${3:-"drunner/support:latest"}
+ROOTPATH="/opt/drunner"
+PULLONUPDATE=1
+SUPPORTIMAGE="drunner/support:latest"
+DRUNNERINSTALLURL="https://raw.github.com/j842/dockerrunner/master/drunner-install"
+
+# preserve existing settings if present.
+if [ -e "/etc/drunner/drunner.cfg" ]; then
+   source "/etc/drunner/drunner.cfg"
+fi
+
 configure
