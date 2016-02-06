@@ -180,3 +180,11 @@ The convention for exit codes is:
 * 3 for no change 
 
 This is to aid Ansible use.
+
+## Security
+See [Docker's Security Statement](https://docs.docker.com/engine/security/security) for information on security and docker.
+There's a long way to go. For now, using sudo to run docker doesn't give you much over running as root - since with sudo you can
+trivially map the host filesystem into a container and do whatever you want to it. Because of this, dRunner focuses
+on security aspects that help, such as insisting containers are not run as root user. Avoid priveleged containers and
+mapping the docker socket where possible and audit any scripts run on the host (dRunner makes this easy since they are all in one place).
+
