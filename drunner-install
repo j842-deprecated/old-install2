@@ -87,7 +87,7 @@ function copydrfiles {
    fi  
    # set safer ownership and permissions
    chown -R root:root "${ROOTPATH}/support"
-   chmod -R 0500 "${ROOTPATH}/support"
+   chmod -R 0555 "${ROOTPATH}/support"
 
    local DREXEC="/usr/local/bin/drunner"
    if [ -e "$DREXEC" ]; then rm "$DREXEC" ; fi
