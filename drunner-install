@@ -19,15 +19,8 @@ set -o nounset
 #    https://github.com/j842/drunner
 #
 # ------------------------------------------------------------------
-
-
-# Global constants.
-readonly DRETCPATH="/etc/drunner"
-readonly DR_CFG_FILE_PATH="${DRETCPATH}/drunner.cfg"
-readonly DRBINDIR="bin"
-readonly DRSERVICESDIR="services"
-
-
+readonly CODE_S="\e[32m"
+readonly CODE_E="\e[0m"
 #------------------------------------------------------------------------------------
 
 # command_exists
@@ -76,42 +69,42 @@ EOF
 
 # copydrfiles
 function copydrfiles {
-   # the ROOTPATH that the container will update.
-   if [ -d "${DRBINPATH}" ]; then
-      rm -r "${DRBINPATH}"
+   if [ -d "${ROOTPATH}/support" ]; then
+      rm -r "${ROOTPATH}/support"
    fi
-   mkdir -p "${DRBINPATH}"
-   mkdir -p "${ROOTPATH}/${DRSERVICESDIR}"
+   mkdir -p "${ROOTPATH}/support"
    
-   docker run --rm -it -v "${DRBINPATH}:/tempcopy" "${SUPPORTIMAGE}" /bin/bash -c "cp -r /drunner/* /tempcopy/"                             
+   if [ ! -d "${ROOTPATH}/services" ]; then
+      mkdir -p "${ROOTPATH}/services"
+   fi
+    
+   docker run --rm -it -v "${ROOTPATH}/support:/tempcopy" "${SUPPORTIMAGE}" /bin/bash -c "cp -r /support/* /tempcopy/"                             
    if [ $? -ne 0 ]; then 
       echo "Failed to copy files.">&2 
       echo "You will need to reinstall dRunner.">&2
-      rm -r "${ROOTPATH}" "${DRETCPATH}"
+      rm -r "${ROOTPATH}" "/etc/drunner"
       exit 1
    fi  
    # set safer ownership and permissions
-   chown -R root:root "${DRBINPATH}"
-   chmod -R 0555 "${DRBINPATH}"
+   chown -R root:root "${ROOTPATH}/support"
+   chmod -R 0500 "${ROOTPATH}/support"
 
    local DREXEC="/usr/local/bin/drunner"
    if [ -e "$DREXEC" ]; then rm "$DREXEC" ; fi
-   ln -s "${DRBINPATH}/drunner" "$DREXEC"
+   ln -s "${ROOTPATH}/support/drunner" "$DREXEC"
 }
 
 #------------------------------------------------------------------------------------
 
 # configure
-function configure {
-   DRBINPATH="${ROOTPATH}/${DRBINDIR}"
-   
+function configure {   
    UPDATE=""
-   if [ -e "${DRBINPATH}/buildtime" ]; then
-      . "${DRBINPATH}/buildtime"
+   if [ -e "${ROOTPATH}/support/buildtime" ]; then
+      source "${ROOTPATH}/support/buildtime"
       UPDATE="${BUILDTIME}"
    fi
    
-   mkdir -p "$DRETCPATH"   # ensure directrory exists.   
+   mkdir -p "/etc/drunner"   # ensure directrory exists.   
    local DATESTAMP="$(TZ=Pacific/Auckland date)"
 
    # ensure we have the latest support image.
@@ -120,21 +113,19 @@ function configure {
       if [ "$?" -ne 0 ]; then die "Unable to pull required Docker image ${SUPPORTIMAGE}." ; fi
    fi
 
-cat <<EOF >"${DR_CFG_FILE_PATH}"
+cat <<EOF >"/etc/drunner/drunner.cfg"
 # Docker Runner configuration file.
 # Last modified ${DATESTAMP}
 
 readonly ROOTPATH="${ROOTPATH}"
-readonly DRSERVICESPATH="${ROOTPATH}/${DRSERVICESDIR}"
 readonly SUPPORTIMAGE="${SUPPORTIMAGE}"
-readonly DRBINPATH=${ROOTPATH}/${DRBINDIR}
 readonly PULLONUPDATE=${PULLONUPDATE}
 EOF
    
    # creates ROOTPATH and populates the bin folder from SUPPORTIMAGE.
    copydrfiles
    
-   . "${DRBINPATH}/buildtime"
+   source "${ROOTPATH}/support/buildtime"
          
    if [ -n "$UPDATE" ]; then
       echo " ">&2
@@ -143,13 +134,12 @@ EOF
       echo "Previous Build: ${UPDATE}">&2
       echo "New Build:      ${BUILDTIME}">&2
       echo " ">&2
-      echo "Update complete, dRunner is ready to use!">&2
+      echo -e "Update complete. Try running ${CODE_S}drunner${CODE_E} now." >&2
       echo " ">&2      
    else
       echo " ">&2
       echo " ">&2
-      echo "Installation complete, dRunner is ready to use!">&2
-      echo "Try running  dr  now." >&2
+      echo -e "Installation complete! Try running ${CODE_S}drunner${CODE_E} now." >&2
       echo " ">&2
    fi
 }
