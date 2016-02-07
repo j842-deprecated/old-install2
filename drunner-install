@@ -155,7 +155,7 @@ if [ "$EUID" -ne 0 ]; then echo "Please run as root" ; exit 1 ; fi
 
 if ! command_exists docker ; then
    echo "Please install Docker before using dRunner.">&2
-   echo "(e.g. use  https://github.com/j842/scripts/blob/master/install_docker.sh )">&2
+   echo "(e.g. use  https://raw.githubusercontent.com/j842/scripts/master/install_docker.sh )">&2
    exit 1
 fi
 if [ "$(uname -rv | grep -c Debian)" -eq 0 ]; then
@@ -170,7 +170,7 @@ fi
 ROOTPATH="/opt/drunner"
 PULLONUPDATE=1
 SUPPORTIMAGE="drunner/support:latest"
-DRUNNERINSTALLURL="https://raw.github.com/j842/dockerrunner/master/drunner-install"
+DRUNNERINSTALLURL="https://raw.githubusercontent.com/j842/dRunner/master/drunner-install"
 
 # preserve existing settings if present.
 if [ -e "/etc/drunner/drunner.cfg" ]; then
