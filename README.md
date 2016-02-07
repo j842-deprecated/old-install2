@@ -47,20 +47,22 @@ Now you're ready to try things.
 
 Install and try the [helloworld](https://github.com/j842/docker-dr-helloworld) example:
 ```
-    drunner hi install drunner/helloworld
-    hi run
+    drunner install drunner/helloworld
+    helloworld run
 ```
+helloworld is now in your path, you can run it directly, e.g. with no arguments
+to see the help.
 
 Back up helloworld to an encrypted archive (including all settings and local data), 
 then destroy it, leaving the machine clean:
 ```
-   PASS=shh drunner backup hi hi.backup
-   drunner destroy hi
+   PASS=shh drunner backup helloworld hw.b
+   drunner destroy helloworld
 ```
 Restore the backup as hithere, and run it:
 ```   
-   PASS=ssh drrunner restore hi.backup hithere
-   hithere run
+   PASS=shh drrunner restore hw.b hi
+   hi run
 ```
 
 Other images to try:
