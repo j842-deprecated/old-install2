@@ -85,9 +85,10 @@ function copydrfiles {
       rm -r "${ROOTPATH}" "/etc/drunner"
       exit 1
    fi  
-   # set safer ownership and permissions
+   # set ownership and permissions.
    chown -R root:root "${ROOTPATH}/support"
-   chmod -R 0555 "${ROOTPATH}/support"
+   chmod -R 0500 "${ROOTPATH}/support"
+   chmod -R 0555 "${ROOTPATH}/support/run_on_service"
 
    local DREXEC="/usr/local/bin/drunner"
    if [ -e "$DREXEC" ]; then rm "$DREXEC" ; fi
@@ -99,8 +100,8 @@ function copydrfiles {
 # configure
 function configure {   
    UPDATE=""
-   if [ -e "${ROOTPATH}/support/buildtime" ]; then
-      source "${ROOTPATH}/support/buildtime"
+   if [ -e "${ROOTPATH}/support/buildtime.sh" ]; then
+      source "${ROOTPATH}/support/buildtime.sh"
       UPDATE="${SUPPORTBUILDTIME}"
    fi
    
@@ -113,7 +114,7 @@ function configure {
       if [ "$?" -ne 0 ]; then die "Unable to pull required Docker image ${SUPPORTIMAGE}." ; fi
    fi
 
-cat <<EOF >"/etc/drunner/drunner.cfg"
+cat <<EOF >"/etc/drunner/config.sh"
 # Docker Runner configuration file.
 # You can edit this file - user changes are preserved on update.
 # Last generated ${DATESTAMP}
@@ -128,7 +129,7 @@ EOF
    # creates ROOTPATH and populates the bin folder from SUPPORTIMAGE.
    copydrfiles
    
-   source "${ROOTPATH}/support/buildtime"
+   source "${ROOTPATH}/support/buildtime.sh"
          
    if [ -n "$UPDATE" ]; then
       echo " ">&2
@@ -173,8 +174,8 @@ SUPPORTIMAGE="drunner/support:latest"
 DRUNNERINSTALLURL="https://raw.githubusercontent.com/j842/dRunner/master/drunner-install"
 
 # preserve existing settings if present.
-if [ -e "/etc/drunner/drunner.cfg" ]; then
-   source "/etc/drunner/drunner.cfg"
+if [ -e "/etc/drunner/config.sh" ]; then
+   source "/etc/drunner/config.sh"
 fi
 
 configure
