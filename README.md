@@ -95,7 +95,7 @@ PASS=? drunner restore BACKUPFILE SERVICENAME  -- restore container, configurati
 
 # dRunner Compatibility
 
-To see how to make a dRunner compatible docker image [read the documentation](https://github.com/j842/dRunner/blob/master/MAEKCOMPATIBLE.md).
+To see how to make a dRunner compatible docker image [read the documentation](https://github.com/j842/dRunner/blob/master/MAKECOMPATIBLE.md).
 
 ## Exit Codes
 
