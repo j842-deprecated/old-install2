@@ -76,7 +76,8 @@ dRunner can test containers for compatibility and functionality. Try it out with
 ### dRunner Images to play with
 
 Other images to try:
-* [simplesecrets](https://github.com/j842/drunner-simplesecrets) - store low sercurity secrets in S3.
+* [minecraft](https://github.com/j842/drunner-minecraft) - really easy minecraft server.
+* [simplesecrets](https://github.com/j842/drunner-simplesecrets) - store low security secrets in S3.
 
 (more coming soon!)
 
