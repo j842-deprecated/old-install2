@@ -65,8 +65,20 @@ Restore the backup as hithere, and run it:
    hi run
 ```
 
+### Running some tests
+
+dRunner can test containers for compatibility and functionality. Try it out with:
+```
+   drunner checkimage drunner/helloworld
+   drunner install drunner/test dtest
+   dtest test drunner/helloworld
+```
+### dRunner Images to play with
+
 Other images to try:
-* [simplesecrets](https://github.com/j842/docker-simplesecrets) - store low sercurity secrets in S3.
+* [simplesecrets](https://github.com/j842/drunner-simplesecrets) - store low sercurity secrets in S3.
+
+(more coming soon!)
 
 ## General Use
 
