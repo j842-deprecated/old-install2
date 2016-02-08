@@ -69,8 +69,7 @@ Restore the backup as hithere, and run it:
 
 dRunner can test containers for compatibility and functionality. Try it out with:
 ```
-   drunner checkimage drunner/helloworld
-   drunner install drunner/test dtest
+   drunner install drunner/dtest
    dtest test drunner/helloworld
 ```
 ### dRunner Images to play with
