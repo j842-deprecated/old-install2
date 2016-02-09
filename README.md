@@ -3,7 +3,7 @@
 # dRunner
 
 dRunner is a script and a set of conventions to make it easy to install, 
-configure and use Docker containers. 
+configure and use Docker containers on a Debian host via the command line interface.
 
 dRunner eliminates the need to separately store and manage scripts to use the Docker container, 
 or deal with long docker run commands.
