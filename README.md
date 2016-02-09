@@ -18,7 +18,7 @@ Features:
 * Everything in containers is run as a non-root user
 * Trivial to install a service multiple times with different configurations (e.g. mulitple minecraft servers)
 * Ansible friendly for automation (see [Exit Codes](https://github.com/j842/dr#exit-codes) below).
-* Small footprint: /opt/drunner, /etc/drunner and one script per service in /usr/local/bin
+* Small footprint: /opt/drunner, /etc/drunner and one symbolic link per service in /usr/local/bin
 
 # Usage
 
