@@ -36,7 +36,7 @@ dRunner needs docker. You can install it with:
 
 Install dRunner on the host by downloading the install script:
 ```
-    wget https://raw.githubusercontent.com/j842/dr/master/drunner-install
+    wget https://raw.githubusercontent.com/drunner/install/master/drunner-install
     bash drunner-install
 ```
 Now you're ready to try things.
