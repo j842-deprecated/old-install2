@@ -48,7 +48,7 @@ NAME
    drunner-install - install the dRunner framework
     
 SYNOPSIS
-   drunner-install
+   drunner-install [ROOTPATH]
 
 DESCRIPTION
    dRunner Provides a standard way to manage and run containers.
@@ -163,7 +163,7 @@ if [ "$(uname -rv | grep -c Debian)" -eq 0 ]; then
    die "This script is currently only for Debian hosts."
 fi
 
-if [ "$#" -ne 0 ]; then
+if [ "$#" -gt 1 ]; then
    showusage
    exit 1  
 fi
@@ -174,8 +174,9 @@ SUPPORTIMAGE="drunner/support:latest"
 DRUNNERINSTALLURL="https://raw.githubusercontent.com/j842/dRunner/master/drunner-install"
 
 # preserve existing settings if present.
-if [ -e "/etc/drunner/config.sh" ]; then
-   source "/etc/drunner/config.sh"
-fi
+[ ! -e "/etc/drunner/config.sh" ] || source "/etc/drunner/config.sh"
+
+# if caller specified ROOTPATH then override with that.
+[ $# -eq 0 ] || ROOTPATH="$1"
 
 configure
