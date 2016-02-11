@@ -3,7 +3,7 @@
 # dRunner
 
 dRunner is a script and a set of conventions to make it easy to install, 
-configure and use Docker containers. 
+configure and use Docker containers on a Debian host via the command line interface.
 
 dRunner eliminates the need to separately store and manage scripts to use the Docker container, 
 or deal with long docker run commands.
@@ -18,7 +18,7 @@ Features:
 * Everything in containers is run as a non-root user
 * Trivial to install a service multiple times with different configurations (e.g. mulitple minecraft servers)
 * Ansible friendly for automation (see [Exit Codes](https://github.com/j842/dr#exit-codes) below).
-* Small footprint: /opt/drunner, /etc/drunner and one script per service in /usr/local/bin
+* Small footprint: /opt/drunner, /etc/drunner and one symbolic link per service in /usr/local/bin
 
 # Usage
 
@@ -36,7 +36,7 @@ dRunner needs docker. You can install it with:
 
 Install dRunner on the host by downloading the install script:
 ```
-    wget https://raw.githubusercontent.com/j842/dr/master/drunner-install
+    wget https://raw.githubusercontent.com/drunner/install/master/drunner-install
     bash drunner-install
 ```
 Now you're ready to try things.
@@ -77,6 +77,7 @@ dRunner can test containers for compatibility and functionality. Try it out with
 Other images to try:
 * [minecraft](https://github.com/j842/drunner-minecraft) - really easy minecraft server.
 * [simplesecrets](https://github.com/j842/drunner-simplesecrets) - store low security secrets in S3.
+* [samba](https://github.com/drunner/samba) - run samba for development work.
 
 (more coming soon!)
 
