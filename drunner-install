@@ -31,9 +31,9 @@ function command_exists { command -v "$1" >/dev/null 2>&1 ; }
 # die MESSAGE 
 function die {
    if [ "$#" -eq 1 ]; then
-      echo "$1" <&2
+      echo -e "$1" <&2
    else
-      echo "Unexpected error. Exiting."<&2
+      echo -e "Unexpected error. Exiting."<&2
    fi
    exit 1
 }
@@ -48,12 +48,12 @@ NAME
    drunner-install - install the dRunner framework
     
 SYNOPSIS
-   drunner-install
+   drunner-install [ROOTPATH]
 
 DESCRIPTION
    dRunner Provides a standard way to manage and run containers.
    This script installs dRunner on a Debian system, with all files
-   stored under ROOTPATH, which defaults to /opt/drunner.
+   stored under ROOTPATH, which defaults to /home/$USER/drunner.
       
    See https://github.com/j842/drunner
    
@@ -152,13 +152,18 @@ EOF
 
 # MAIN
 
-if [ "$EUID" -ne 0 ]; then echo "Please run as root" ; exit 1 ; fi
+[ "$EUID" -ne 0 ] || die "Please install as a standard user, not as root!" 
+groups $USER | grep &>/dev/null '\bdocker\b' || die "Please add the current user to the docker group. As root: ${CODE_S}adduser $USER docker${CODE_E}, then "
+groups | grep &>/dev/null '\bdocker\b' || { GRP=$(id -g) ; newgrp docker ; newgrp "$GRP" ; }
+groups | grep &>/dev/null '\bdocker\b' || die "$USER doesn't seem to be a member of docker. Log out then in again?"
 
 if ! command_exists docker ; then
    echo "Please install Docker before using dRunner.">&2
    echo "(e.g. use  https://raw.githubusercontent.com/j842/scripts/master/install_docker.sh )">&2
    exit 1
 fi
+docker --version || die "Couldn't run docker --version for some reason?"
+
 if [ "$(uname -rv | grep -c Debian)" -eq 0 ]; then
    die "This script is currently only for Debian hosts."
 fi
@@ -168,14 +173,14 @@ if [ "$#" -ne 0 ]; then
    exit 1  
 fi
 
-ROOTPATH="/opt/drunner"
+ROOTPATH="/home/${USER}/drunner"
 PULLONUPDATE=1
 SUPPORTIMAGE="drunner/support:latest"
 DRUNNERINSTALLURL="https://raw.githubusercontent.com/j842/dRunner/master/drunner-install"
 
 # preserve existing settings if present.
-if [ -e "/etc/drunner/config.sh" ]; then
-   source "/etc/drunner/config.sh"
+if [ -e "${ROOTPATH}/config.sh" ]; then
+   source "${ROOTPATH}/config.sh"
 fi
 
 configure
