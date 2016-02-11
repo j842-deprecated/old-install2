@@ -86,12 +86,11 @@ function copydrfiles {
       exit 1
    fi  
    # set ownership and permissions.
-   docker run --rm -v "${ROOTPATH}/support:/s" drunner/baseimage-alpine bash -c "chown -R $USER:${GROUPS[0]} /s ; chmod -R 0500 /s ; chmor -R 0555 /s/run_on_service"
+   docker run --rm -v "${ROOTPATH}/support:/s" drunner/baseimage-alpine bash -c "chown -R $EUID:${GROUPS[0]} /s ; chmod -R 0500 /s ; chmod -R 0555 /s/run_on_service"
 
    local E="/usr/local/bin"
    local S="${ROOTPATH}/support"
-   [ ! -e "$DREXEC" ] || "$DREXEC"
-   docker run --rm -v "$E:$E" -v "$S:$S" drunner/baseimage-alpine bash -c "ln -s $S/drunner $E/drunner" || die "Couldn't create drunner symbolic link"
+   docker run --rm -v "$E:$E" -v "$S:$S" drunner/baseimage-alpine bash -c "rm -f $E/drunner ; ln -s $S/drunner $E/drunner" || die "Couldn't create drunner symbolic link"
 }
 
 #------------------------------------------------------------------------------------
