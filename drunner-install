@@ -86,13 +86,12 @@ function copydrfiles {
       exit 1
    fi  
    # set ownership and permissions.
-   chown -R root:root "${ROOTPATH}/support"
-   chmod -R 0500 "${ROOTPATH}/support"
-   chmod -R 0555 "${ROOTPATH}/support/run_on_service"
+   docker run --rm -v "${ROOTPATH}/support:/s" drunner/baseimage-alpine bash -c "chown -R $USER:${GROUPS[0]} /s ; chmod -R 0500 /s ; chmor -R 0555 /s/run_on_service"
 
-   local DREXEC="/usr/local/bin/drunner"
-   if [ -e "$DREXEC" ]; then rm "$DREXEC" ; fi
-   ln -s "${ROOTPATH}/support/drunner" "$DREXEC"
+   local E="/usr/local/bin"
+   local S="${ROOTPATH}/support"
+   [ ! -e "$DREXEC" ] || "$DREXEC"
+   docker run --rm -v "$E:$E" -v "$S:$S" drunner/baseimage-alpine bash -c "ln -s $S/drunner $E/drunner" || die "Couldn't create drunner symbolic link"
 }
 
 #------------------------------------------------------------------------------------
@@ -105,7 +104,6 @@ function configure {
       UPDATE="${SUPPORTBUILDTIME}"
    fi
    
-   mkdir -p "/etc/drunner"   # ensure directrory exists.   
    local DATESTAMP="$(TZ=Pacific/Auckland date)"
 
    # ensure we have the latest support image.
@@ -114,7 +112,13 @@ function configure {
       if [ "$?" -ne 0 ]; then die "Unable to pull required Docker image ${SUPPORTIMAGE}." ; fi
    fi
 
-cat <<EOF >"/etc/drunner/config.sh"
+   
+   # creates ROOTPATH and populates the bin folder from SUPPORTIMAGE.
+   copydrfiles
+   
+   source "${ROOTPATH}/support/buildtime.sh" || die "Missing buildtime.sh!"
+
+cat <<EOF >"${ROOTPATH}/config.sh"
 # Docker Runner configuration file.
 # You can edit this file - user changes are preserved on update.
 # Last generated ${DATESTAMP}
@@ -125,11 +129,6 @@ readonly PULLONUPDATE=${PULLONUPDATE}
 readonly DRUNNERINSTALLURL="${DRUNNERINSTALLURL}"
 readonly DRUNNERINSTALLTIME="${DATESTAMP}"
 EOF
-   
-   # creates ROOTPATH and populates the bin folder from SUPPORTIMAGE.
-   copydrfiles
-   
-   source "${ROOTPATH}/support/buildtime.sh"
          
    if [ -n "$UPDATE" ]; then
       echo " ">&2
