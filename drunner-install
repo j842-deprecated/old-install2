@@ -176,7 +176,7 @@ fi
 
 ROOTPATH="/home/${USER}/drunner"
 PULLONUPDATE=1
-SUPPORTIMAGE="drunner/support:latest"
+SUPPORTIMAGE="drunner/install-support:latest"
 DRUNNERINSTALLURL="https://raw.githubusercontent.com/j842/dRunner/master/drunner-install"
 
 # preserve existing settings if present.
