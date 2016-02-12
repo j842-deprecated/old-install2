@@ -15,7 +15,7 @@ Features:
 * Services can consist of any number of containers
 * Backup an entire service to a single file, trivially restore on another machine
 * Destroying a service leaves the machine in a clean state, no cruft left
-* Everything in containers is run as a non-root user
+* Everything in containers is run as a non-root user, drunner on host runs as non-root
 * Trivial to install a service multiple times with different configurations (e.g. mulitple minecraft servers)
 * Ansible friendly for automation (see [Exit Codes](https://github.com/j842/dr#exit-codes) below).
 * Small footprint: /opt/drunner, /etc/drunner and one script per service in /usr/local/bin
@@ -28,11 +28,14 @@ Features:
 
 #### Dependencies
 
-dRunner needs docker. You can install it with:
+dRunner needs docker. You can install it as root with:
 ```
    wget -nv -O /tmp/install_docker.sh https://goo.gl/2cxobx ; bash /tmp/install_docker.sh
 ```
+
 #### Installing Docker Runner
+
+Ensure that you are not root.
 
 Install dRunner on the host by downloading the install script:
 ```
