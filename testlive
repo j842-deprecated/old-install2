@@ -1,0 +1,60 @@
+#!/bin/bash
+
+
+# Formatting for comamnds - standardised.
+[ -v ECODE ] || readonly ECODE=$(printf "\e") 
+[ -v CODE_S ] || readonly CODE_S="$ECODE[32m"
+[ -v CODE_E ] || readonly CODE_E="$ECODE[0m"
+
+#------------------------------------------------------------------------------------
+# die MSG [EXITCODE] - show the message (red) and exit exitcode.
+
+function die { 
+   echo " ">&2 ; echo -e "\e[31m\e[1m${1}\e[0m">&2  ; echo " ">&2
+   EXITCODE=${2:-1}
+   exit "$EXITCODE"
+}
+
+function upline { echo -en "\e[1A">&2 ; }
+function checkingmsg { PFMSG="$1" ; echo -e "[ \e[2m?\e[0m ] $PFMSG">&2 ; }
+function passmsg { upline ; echo -e "[ \e[32m\u2714\e[0m ] $PFMSG" >&2 ; }
+function failmsg { 
+   upline
+   echo -e "[ \e[31m\e[1m\u2718\e[0m ] $PFMSG" >&2 
+   echo " ">&2
+   echo "--------------------------------------------------------------------------------">&2
+   echo -e "${1:-"No details available."}">&2
+   echo "--------------------------------------------------------------------------------">&2
+   echo " ">&2
+ }
+
+
+#------------------------------------------------------------------------------------
+
+
+function main {
+   MYDIR=$( dirname "$(readlink -f "$0")" )
+
+   [ -e "$MYDIR/drunner-install" ] || die "drunner-install not in this directory."
+
+   local BRANCH=$(cd "$P" ; git rev-parse --abbrev-ref HEAD 2>/dev/null)
+   local DRUNNERINSTALLURL="https://raw.githubusercontent.com/drunner/install/${BRANCH}/drunner-install"
+   local SUPPORTIMAGE="drunner/install-support"
+
+   checkingmsg "Checking drunner-install:$BRANCH matches live"
+
+   local TEMPDIR="$(mktemp -d)"
+   docker run -it --name="drunner-downloadfile" -v "${TEMPDIR}:/tempdir" "${SUPPORTIMAGE}" \
+      bash -c "wget --no-cache -nv -O /tempdir/drunner-install ${DRUNNERINSTALLURL}" >/dev/null 2>&1
+   local RVAL="$?"
+   docker rm "drunner-downloadfile" >/dev/null 2>&1
+
+   [ "$RVAL" -eq 0 ] || { failmsg "Unable to download drunner-install:$BRANCH" ; exit 1 ; }
+   [ -e "${TEMPDIR}/drunner-install" ] || { failmsg "drunner-install download mysteriously missing." ; exit 1 ; }
+
+   DIFFOUT="diff comparison failed"
+   DIFFOUT=$(diff "$MYDIR/drunner-install" "$TEMPDIR/drunner-install") || { failmsg "$DIFFOUT" ; exit 1 ; }
+   passmsg
+}
+
+main "$@"
