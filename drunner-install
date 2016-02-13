@@ -71,9 +71,10 @@ EOF
 
 # copydrfiles
 function copydrfiles {
-   [ ! -d "${ROOTPATH}/support" ] || rm -rf "${ROOTPATH}/support"    || die "Couldn't remove old ${ROOTPATH}/support."
-   mkdir -p "${ROOTPATH}/support" || die "Couldn't create ${ROOTPATH}/support"
-   [ -d "${ROOTPATH}/services" ]  || mkdir -p "${ROOTPATH}/services" || die "Couldn't create ${ROOTPATH}/services"
+   [ ! -d "${ROOTPATH}/support" ]    || chmod -R 0777 "${ROOTPATH}/support" && rm -rf "${ROOTPATH}/support"    || die "Couldn't remove old ${ROOTPATH}/support."
+   mkdir -p "${ROOTPATH}/support"    || die "Couldn't create ${ROOTPATH}/support"
+   chmod 0777 "${ROOTPATH}/support"  || die "Couldn't set permissions on ${ROOTPATH}/support"
+   [ -d "${ROOTPATH}/services" ]     || mkdir -p "${ROOTPATH}/services" || die "Couldn't create ${ROOTPATH}/services"
 
    # copy the support files from the install-support image onto the host.    
    docker run --rm -it -v "${ROOTPATH}/support:/tempcopy" "${SUPPORTIMAGE}" \
@@ -179,12 +180,15 @@ fi
 ROOTPATH="/home/${USER}/drunner"
 PULLONUPDATE=1
 SUPPORTIMAGE="drunner/install-support:latest"
-DRUNNERINSTALLURL="https://raw.githubusercontent.com/j842/dRunner/master/drunner-install"
+DRUNNERINSTALLURL="https://raw.githubusercontent.com/drunner/install/master/drunner-install"
+
+# if caller specified ROOTPATH then override with that.
+[ $# -eq 0 ] || ROOTPATH="$1"
 
 # preserve existing settings if present.
 [ ! -e "$ROOTPATH/config.sh" ] || source "$ROOTPATH/config.sh"
 
-# if caller specified ROOTPATH then override with that.
+# if caller specified ROOTPATH then override with that (again!) - handles edge case where config.sh has been manually moved.
 [ $# -eq 0 ] || ROOTPATH="$1"
 
 # ensure consistency in exact path string (we test this later in drunner)
