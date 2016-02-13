@@ -93,6 +93,7 @@ function copydrfiles {
    [ -d "$E" ] || { mkdir -p "$E" || die "Couldn't create $E" ; source ~/.profile ; }  
    local S="${ROOTPATH}/support"
    # docker run --rm -v "$E:$E" -v "$S:$S" drunner/baseimage-alpine bash -c "rm -f $E/drunner ; ln -s $S/drunner $E/drunner" || die "Couldn't create drunner symbolic link"
+   [ ! -e "$E/drunner" ] || rm "$E/drunner"
    ln -s "$S/drunner" "$E/drunner"
 }
 
@@ -125,7 +126,7 @@ cat <<EOF >"${ROOTPATH}/config.sh"
 # You can edit this file - user changes are preserved on update.
 # Last generated ${DATESTAMP}
 
-readonly ROOTPATH="${ROOTPATH}"
+ROOTPATH="${ROOTPATH}"
 readonly SUPPORTIMAGE="${SUPPORTIMAGE}"
 readonly PULLONUPDATE=${PULLONUPDATE}
 readonly DRUNNERINSTALLURL="${DRUNNERINSTALLURL}"
@@ -184,5 +185,8 @@ DRUNNERINSTALLURL="https://raw.githubusercontent.com/j842/dRunner/master/drunner
 
 # if caller specified ROOTPATH then override with that.
 [ $# -eq 0 ] || ROOTPATH="$1"
+
+# ensure consistency in exact path string (we test this later in drunner)
+ROOTPATH=$(realpath "$ROOTPATH" | tr -d '\r\n')
 
 configure
