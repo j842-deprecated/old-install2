@@ -92,8 +92,7 @@ function copydrfiles {
    local E="${HOME}/bin"
    [ -d "$E" ] || { mkdir -p "$E" || die "Couldn't create $E" ; source ~/.profile ; }  
    local S="${ROOTPATH}/support"
-   # docker run --rm -v "$E:$E" -v "$S:$S" drunner/baseimage-alpine bash -c "rm -f $E/drunner ; ln -s $S/drunner $E/drunner" || die "Couldn't create drunner symbolic link"
-   [ ! -e "$E/drunner" ] || rm "$E/drunner"
+   [ ! -e "$E/drunner" ] || rm -f "$E/drunner"
    ln -s "$S/drunner" "$E/drunner"
 }
 
