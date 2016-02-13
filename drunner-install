@@ -50,14 +50,14 @@ NAME
    drunner-install - install the dRunner framework
     
 SYNOPSIS
-   drunner-install [ROOTPATH]
+   drunner-install ROOTPATH
 
 DESCRIPTION
    dRunner Provides a standard way to manage and run containers.
    This script installs dRunner on a Debian system, with all files
-   stored under ROOTPATH, which defaults to /home/$USER/drunner.
+   stored under ROOTPATH, e.g. /home/$USER/drunner.
       
-   See https://github.com/j842/drunner
+   See https://github.com/drunner/install
    
 EXIT CODE
    0   - success
@@ -69,8 +69,8 @@ EOF
 
 #------------------------------------------------------------------------------------
 
-# copydrfiles
-function copydrfiles {
+# copysupportfiles
+function copysupportfiles {
    [ ! -d "${ROOTPATH}/support" ]    || chmod -R 0777 "${ROOTPATH}/support" && rm -rf "${ROOTPATH}/support"    || die "Couldn't remove old ${ROOTPATH}/support."
    mkdir -p "${ROOTPATH}/support"    || die "Couldn't create ${ROOTPATH}/support"
    chmod 0777 "${ROOTPATH}/support"  || die "Couldn't set permissions on ${ROOTPATH}/support"
@@ -121,8 +121,8 @@ function configure {
    fi
 
    
-   # creates ROOTPATH and populates the bin folder from SUPPORTIMAGE.
-   copydrfiles
+   # creates ROOTPATH/support and populates the bin folder from SUPPORTIMAGE.
+   copysupportfiles
    
    source "${ROOTPATH}/support/buildtime.sh" || die "Missing buildtime.sh!"
 
@@ -131,7 +131,6 @@ cat <<EOF >"${ROOTPATH}/config.sh"
 # You can edit this file - user changes are preserved on update.
 # Last generated ${DATESTAMP}
 
-ROOTPATH="${ROOTPATH}"
 readonly SUPPORTIMAGE="${SUPPORTIMAGE}"
 readonly PULLONUPDATE=${PULLONUPDATE}
 readonly DRUNNERINSTALLURL="${DRUNNERINSTALLURL}"
@@ -175,24 +174,21 @@ if [ "$(uname -rv | grep -c Debian)" -eq 0 ]; then
    die "This script is currently only for Debian hosts."
 fi
 
-if [ "$#" -gt 1 ]; then
+if [ "$#" -ne 1 ]; then
    showusage
    exit 1  
 fi
 
-ROOTPATH="/home/${USER}/drunner"
+ROOTPATH="$1"
 PULLONUPDATE=1
 SUPPORTIMAGE="drunner/install-support:latest"
 DRUNNERINSTALLURL="https://raw.githubusercontent.com/drunner/install/master/drunner-install"
-
-# if caller specified ROOTPATH then override with that.
-[ $# -eq 0 ] || ROOTPATH="$1"
 
 # preserve existing settings if present.
 [ ! -e "$ROOTPATH/config.sh" ] || source "$ROOTPATH/config.sh"
 
 # if caller specified ROOTPATH then override with that (again!) - handles edge case where config.sh has been manually moved.
-[ $# -eq 0 ] || ROOTPATH="$1"
+ROOTPATH="$1"
 
 # ensure consistency in exact path string (we test this later in drunner)
 ROOTPATH=$(realpath "$ROOTPATH" | tr -d '\r\n')
