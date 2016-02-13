@@ -95,7 +95,10 @@ function copydrfiles {
    local E="${HOME}/bin"
    [ -d "$E" ] || { mkdir -p "$E" || die "Couldn't create $E" ; source ~/.profile ; }  
    local S="${ROOTPATH}/support"
-   [ ! -e "$E/drunner" ] || rm -f "$E/drunner"
+   # broken symlinks will be false for -e but true for -L. 
+   if [ -e "$E/drunner" ] || [ -L "$E/drunner" ]; then
+      rm -f "$E/drunner" || die "Couldn't delete old $E/drunner"
+   fi
    ln -s "$S/drunner" "$E/drunner"
 }
 
