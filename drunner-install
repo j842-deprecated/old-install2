@@ -3,25 +3,25 @@ set -o errexit
 set -o nounset
 
 #
-# ██████╗ ██████╗ ██╗   ██╗███╗   ██╗███╗   ██╗███████╗██████╗       ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗     
-# ██╔══██╗██╔══██╗██║   ██║████╗  ██║████╗  ██║██╔════╝██╔══██╗      ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║     
-# ██║  ██║██████╔╝██║   ██║██╔██╗ ██║██╔██╗ ██║█████╗  ██████╔╝█████╗██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║     
-# ██║  ██║██╔══██╗██║   ██║██║╚██╗██║██║╚██╗██║██╔══╝  ██╔══██╗╚════╝██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║     
+# ██████╗ ██████╗ ██╗   ██╗███╗   ██╗███╗   ██╗███████╗██████╗       ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗
+# ██╔══██╗██╔══██╗██║   ██║████╗  ██║████╗  ██║██╔════╝██╔══██╗      ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║
+# ██║  ██║██████╔╝██║   ██║██╔██╗ ██║██╔██╗ ██║█████╗  ██████╔╝█████╗██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║
+# ██║  ██║██╔══██╗██║   ██║██║╚██╗██║██║╚██╗██║██╔══╝  ██╔══██╗╚════╝██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║
 # ██████╔╝██║  ██║╚██████╔╝██║ ╚████║██║ ╚████║███████╗██║  ██║      ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗
 # ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝      ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝
-#                                                                                                                          
-#                                                                            
+#
+#
 #
 #  dRunner installer
 #  Manage docker containers in a simple and consistent way.
-#  
+#
 #  See:
 #    https://github.com/j842/drunner
 #
 #------------------------------------------------------------------------------------
 
 # Formatting for comamnds - standardised.
-[ -v ECODE ] || readonly ECODE=$(printf "\e") 
+[ -v ECODE ] || readonly ECODE=$(printf "\e")
 [ -v CODE_S ] || readonly CODE_S="$ECODE[32m"
 [ -v CODE_E ] || readonly CODE_E="$ECODE[0m"
 
@@ -30,7 +30,7 @@ function command_exists { command -v "$1" >/dev/null 2>&1 ; }
 
 #------------------------------------------------------------------------------------
 
-# die MESSAGE 
+# die MESSAGE
 function die {
    if [ "$#" -eq 1 ]; then
       echo -e "$1" <&2
@@ -48,7 +48,7 @@ cat <<'EOF' >&2
 
 NAME
    drunner-install - install the dRunner framework
-    
+
 SYNOPSIS
    drunner-install ROOTPATH
 
@@ -56,14 +56,14 @@ DESCRIPTION
    dRunner Provides a standard way to manage and run containers.
    This script installs dRunner on a Debian system, with all files
    stored under ROOTPATH, e.g. /home/$USER/drunner.
-      
+
    See https://github.com/drunner/install
-   
+
 EXIT CODE
    0   - success
    1   - error
    3   - no changes made
-   
+
 EOF
 }
 
@@ -71,11 +71,11 @@ EOF
 
 # chownpath
 # use:   chownpath PATH CMD   with path mapped to /s
-# e.g.:  chownpath "$ROOTPATH/support" "chown -R $EUID:${GROUPS[0]} /s && chmod -R 0500 /s" 
+# e.g.:  chownpath "$ROOTPATH/support" "chown -R $EUID:${GROUPS[0]} /s && chmod -R 0500 /s"
 function chownpath {
    [ $# -eq 2 ] || die "chownpath called with incorrect number of arguments."
    local DPATH="$1"
-   [ -d $DPATH ] || die "chownpath called with non-existant path $DPATH"
+   [ -d "$DPATH" ] || die "chownpath called with non-existant path $DPATH"
    # set ownership and permissions for those support files (don't rely on what's in the container).
    docker run --rm -v "$DPATH:/s" drunner/install-rootutils bash -c "$2" >/dev/null || die "chownpath command failed: $2"
 }
@@ -90,25 +90,25 @@ function copysupportfiles {
    chmod 0777 "${ROOTPATH}/support"  || die "Couldn't set permissions on ${ROOTPATH}/support"
    [ -d "${ROOTPATH}/services" ]     || mkdir -p "${ROOTPATH}/services" || die "Couldn't create ${ROOTPATH}/services"
 
-   # copy the support files from the install-support image onto the host.    
+   # copy the support files from the install-support image onto the host.
    docker run --rm -it -v "${ROOTPATH}/support:/tempcopy" "${SUPPORTIMAGE}" \
-      /bin/bash -c "cp -r /support/* /tempcopy/"                             
-   
-   if [ $? -ne 0 ]; then 
-      echo "Failed to copy files.">&2 
+      /bin/bash -c "cp -r /support/* /tempcopy/"
+
+   if [ $? -ne 0 ]; then
+      echo "Failed to copy files.">&2
       echo "You will need to reinstall dRunner.">&2
       rm -rf "${ROOTPATH}"
       exit 1
-   fi  
-   
+   fi
+
    # set ownership and permissions for those support files (don't rely on what's in the container).
    chownpath "$ROOTPATH/support" "chown -R $EUID:${GROUPS[0]} /s ; chmod -R 0500 /s ; chmod -R 0555 /s/run_on_service"
 
    # set up the symbolic link so drunner is in the current users path.
    local E="${HOME}/bin"
-   [ -d "$E" ] || { mkdir -p "$E" || die "Couldn't create $E" ; source ~/.profile ; }  
+   [ -d "$E" ] || { mkdir -p "$E" || die "Couldn't create $E" ; source ~/.profile ; }
    local S="${ROOTPATH}/support"
-   # broken symlinks will be false for -e but true for -L. 
+   # broken symlinks will be false for -e but true for -L.
    if [ -e "$E/drunner" ] || [ -L "$E/drunner" ]; then
       rm -f "$E/drunner" || die "Couldn't delete old $E/drunner"
    fi
@@ -117,26 +117,33 @@ function copysupportfiles {
 
 #------------------------------------------------------------------------------------
 
+# imageNameisDev
+# user:   if imageIsDev IMAGENAME ; then ....
+function imageIsDev {
+   local IMAGEN="${1:-""}"
+   [ -n "$IMAGEN" ] || die "IMAGENAME is empty string in imageNameisDev."
+
+   [[ $IMAGEN == *":dev" ]]
+}
+
+#------------------------------------------------------------------------------------
+
 # configure
-function configure {   
+function configure {
    UPDATE=""
    if [ -e "${ROOTPATH}/support/buildtime.sh" ]; then
       source "${ROOTPATH}/support/buildtime.sh"
       UPDATE="${SUPPORTBUILDTIME}"
    fi
-   
+
    local DATESTAMP="$(TZ=Pacific/Auckland date)"
 
    # ensure we have the latest support image.
-   if [ "$PULLONUPDATE" -eq 1 ]; then
-      docker pull "${SUPPORTIMAGE}"
-      if [ "$?" -ne 0 ]; then die "Unable to pull required Docker image ${SUPPORTIMAGE}." ; fi
-   fi
+   imageIsDev "${SUPPORTIMAGE}" || docker pull "${SUPPORTIMAGE}" || die "Unable to pull required Docker image ${SUPPORTIMAGE}."
 
-   
    # creates ROOTPATH/support and populates the bin folder from SUPPORTIMAGE.
    copysupportfiles
-   
+
    source "${ROOTPATH}/support/buildtime.sh" || die "Missing buildtime.sh!"
 
 cat <<EOF >"${ROOTPATH}/config.sh"
@@ -145,11 +152,10 @@ cat <<EOF >"${ROOTPATH}/config.sh"
 # Last generated ${DATESTAMP}
 
 readonly SUPPORTIMAGE="${SUPPORTIMAGE}"
-readonly PULLONUPDATE=${PULLONUPDATE}
 readonly DRUNNERINSTALLURL="${DRUNNERINSTALLURL}"
 readonly DRUNNERINSTALLTIME="${DATESTAMP}"
 EOF
-         
+
    if [ -n "$UPDATE" ]; then
       echo " ">&2
       echo "Updated with ${SUPPORTIMAGE}">&2
@@ -158,7 +164,7 @@ EOF
       echo "New Support Build:      ${SUPPORTBUILDTIME}">&2
       echo " ">&2
       echo -e "Update complete. Try running ${CODE_S}drunner${CODE_E} now." >&2
-      echo " ">&2      
+      echo " ">&2
    else
       echo " ">&2
       echo " ">&2
@@ -171,7 +177,7 @@ EOF
 
 # MAIN
 
-[ "$EUID" -ne 0 ] || die "Please install as a standard user, not as root!" 
+[ "$EUID" -ne 0 ] || die "Please install as a standard user, not as root!"
 groups $USER | grep &>/dev/null '\bdocker\b' || die "Please add the current user to the docker group. As root: ${CODE_S}adduser $USER docker${CODE_E}"
 groups | grep &>/dev/null '\bdocker\b' || { GRP=$(id -g) ; newgrp docker ; newgrp "$GRP" ; }
 groups | grep &>/dev/null '\bdocker\b' || die "$USER doesn't seem to be a member of docker. Log out then in again?"
@@ -189,11 +195,10 @@ fi
 
 if [ "$#" -ne 1 ]; then
    showusage
-   exit 1  
+   exit 1
 fi
 
 ROOTPATH="$1"
-PULLONUPDATE=1
 SUPPORTIMAGE="drunner/install-support:latest"
 DRUNNERINSTALLURL="https://raw.githubusercontent.com/drunner/install/master/drunner-install"
 
