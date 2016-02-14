@@ -39,13 +39,12 @@ function main {
 
    local BRANCH=$(cd "$P" ; git rev-parse --abbrev-ref HEAD 2>/dev/null)
    local DRUNNERINSTALLURL="https://raw.githubusercontent.com/drunner/install/${BRANCH}/drunner-install"
-   local SUPPORTIMAGE="drunner/install-support"
 
    checkingmsg "Checking drunner-install:$BRANCH matches live"
 
    local TEMPDIR="$(mktemp -d)"
-   docker run -it --name="drunner-downloadfile" -v "${TEMPDIR}:/tempdir" "${SUPPORTIMAGE}" \
-      bash -c "wget --no-cache -nv -O /tempdir/drunner-install ${DRUNNERINSTALLURL}" >/dev/null 2>&1
+   docker run -it --name="drunner-downloadfile" -v "${TEMPDIR}:/tempdir" "drunner/install-rootutils" \
+      bash -c "wget --no-cache -nv -O /tempdir/drunner-install ${DRUNNERINSTALLURL} && chmod 0555 /tempdir/drunner-install" >/dev/null 2>&1
    local RVAL="$?"
    docker rm "drunner-downloadfile" >/dev/null 2>&1
 

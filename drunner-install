@@ -69,6 +69,20 @@ EOF
 
 #------------------------------------------------------------------------------------
 
+# chownpath
+# use:   chownpath PATH CMD   with path mapped to /s
+# e.g.:  chownpath "$ROOTPATH/support" "chown -R $EUID:${GROUPS[0]} /s && chmod -R 0500 /s" 
+function chownpath {
+   [ $# -eq 2 ] || die "chownpath called with incorrect number of arguments."
+   local DPATH="$1"
+   [ -d $DPATH ] || die "chownpath called with non-existant path $DPATH"
+   # set ownership and permissions for those support files (don't rely on what's in the container).
+   docker run --rm -v "$DPATH:/s" drunner/install-rootutils bash -c "$2" >/dev/null || die "chownpath command failed: $2"
+}
+
+
+#------------------------------------------------------------------------------------
+
 # copysupportfiles
 function copysupportfiles {
    [ ! -d "${ROOTPATH}/support" ]    || chmod -R 0777 "${ROOTPATH}/support" && rm -rf "${ROOTPATH}/support"    || die "Couldn't remove old ${ROOTPATH}/support."
@@ -88,8 +102,7 @@ function copysupportfiles {
    fi  
    
    # set ownership and permissions for those support files (don't rely on what's in the container).
-   docker run --rm -v "${ROOTPATH}/support:/s" drunner/baseimage-alpine \
-      bash -c "chown -R $EUID:${GROUPS[0]} /s ; chmod -R 0500 /s ; chmod -R 0555 /s/run_on_service"
+   chownpath "$ROOTPATH/support" "chown -R $EUID:${GROUPS[0]} /s ; chmod -R 0500 /s ; chmod -R 0555 /s/run_on_service"
 
    # set up the symbolic link so drunner is in the current users path.
    local E="${HOME}/bin"
