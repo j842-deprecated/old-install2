@@ -89,6 +89,7 @@ function copysupportfiles {
    mkdir -p "${ROOTPATH}/support"    || die "Couldn't create ${ROOTPATH}/support"
    chmod 0777 "${ROOTPATH}/support"  || die "Couldn't set permissions on ${ROOTPATH}/support"
    [ -d "${ROOTPATH}/services" ]     || mkdir -p "${ROOTPATH}/services" || die "Couldn't create ${ROOTPATH}/services"
+   [ -d "${ROOTPATH}/temp"]          || { mkdir -p "${ROOTPATH}/temp" && chmod 0777 "${ROOTPATH}/temp" ; } || die "Couldn't create ${ROOTPATH}/temp"
 
    # copy the support files from the install-support image onto the host.
    docker run --rm -it -v "${ROOTPATH}/support:/tempcopy" "${SUPPORTIMAGE}" \
@@ -106,7 +107,7 @@ function copysupportfiles {
 
    # set up the symbolic link so drunner is in the current users path.
    local E="${HOME}/bin"
-   [ -d "$E" ] || { mkdir -p "$E" || die "Couldn't create $E" ; source ~/.profile ; }
+   [ -d "$E" ] || { mkdir -p "$E" || die "Couldn't create $E" ; source ~/.profile ; echo "IMPORTANT: You'll need to run ${CODE_S}source ~/.profile${CODE_E} for commands to work!" ; }
    local S="${ROOTPATH}/support"
    # broken symlinks will be false for -e but true for -L.
    if [ -e "$E/drunner" ] || [ -L "$E/drunner" ]; then
