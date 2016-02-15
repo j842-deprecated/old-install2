@@ -24,6 +24,7 @@ set -o nounset
 [ -v ECODE ] || readonly ECODE=$(printf "\e")
 [ -v CODE_S ] || readonly CODE_S="$ECODE[32m"
 [ -v CODE_E ] || readonly CODE_E="$ECODE[0m"
+FINALMSG="Try running ${CODE_S}drunner${CODE_E} now."
 
 # command_exists
 function command_exists { command -v "$1" >/dev/null 2>&1 ; }
@@ -107,7 +108,7 @@ function copysupportfiles {
 
    # set up the symbolic link so drunner is in the current users path.
    local E="${HOME}/bin"
-   [ -d "$E" ] || { mkdir -p "$E" || die "Couldn't create $E" ; source ~/.profile ; echo "IMPORTANT: You'll need to run ${CODE_S}source ~/.profile${CODE_E} for commands to work!" ; }
+   [ -d "$E" ] || { mkdir -p "$E" || die "Couldn't create $E" ; FINALMSG="IMPORTANT: run ${CODE_S}source ~/.profile${CODE_E} for ${CODE_S}drunner${CODE_E} to work!" ; }
    local S="${ROOTPATH}/support"
    # broken symlinks will be false for -e but true for -L.
    if [ -e "$E/drunner" ] || [ -L "$E/drunner" ]; then
@@ -164,12 +165,12 @@ EOF
       echo "Previous Support Build: ${UPDATE}">&2
       echo "New Support Build:      ${SUPPORTBUILDTIME}">&2
       echo " ">&2
-      echo -e "Update complete. Try running ${CODE_S}drunner${CODE_E} now." >&2
+      echo -e "Update complete. $FINALMSG" >&2
       echo " ">&2
    else
       echo " ">&2
       echo " ">&2
-      echo -e "Installation complete! Try running ${CODE_S}drunner${CODE_E} now." >&2
+      echo -e "Installation complete! $FINALMSG" >&2
       echo " ">&2
    fi
 }
@@ -180,8 +181,7 @@ EOF
 
 [ "$EUID" -ne 0 ] || die "Please install as a standard user, not as root!"
 groups $USER | grep docker >/dev/null || die "Please add the current user to the docker group. As root: ${CODE_S}adduser $USER docker${CODE_E}"
-groups | grep docker >/dev/null || { echo "Refreshing groups for $USER to pick up docker." ; GRP=$(id -g) ; newgrp docker ; newgrp "$GRP" ; }
-groups | grep docker >/dev/null || die "$USER doesn't seem to be a member of docker. Log out then in again?"
+groups | grep docker >/dev/null || die "$USER hasn't picked up group docker yet. Log out then in again, or run ${CODE_S}exec su -l ${USER}${CODE_E}"
 
 if ! command_exists docker ; then
    echo "Please install Docker before using dRunner.">&2

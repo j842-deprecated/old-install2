@@ -26,19 +26,27 @@ Features:
 
 ### First time installation
 
+We assume here you have a standard user account called testuser which you'll use for drunner.
+
 #### Dependencies
 
 dRunner needs docker. You can install it as root with:
 ```
    wget -nv -O /tmp/install_docker.sh https://goo.gl/2cxobx ; bash /tmp/install_docker.sh
 ```
+and give testuser permissions to run docker with:
+```
+   adduser testuser docker
+```
+
 
 #### Installing Docker Runner
 
 Now switch to a normal user (not root!). Install dRunner on the host by downloading the install script:
 ```
     wget https://raw.githubusercontent.com/drunner/install/master/drunner-install
-    bash drunner-install
+    bash drunner-install ~/drunner
+    source ~/.profile
 ```
 Now you're ready to try things.
 
