@@ -1,0 +1,273 @@
+#!/bin/bash
+                                                                                                                                                          
+#  ad88888ba                                        88                          88888888ba                                                                  
+# d8"     "8b                                       ""                          88      "8b                                                                 
+# Y8,                                                                           88      ,8P                                                                 
+# `Y8aaaaa,     ,adPPYba,  8b,dPPYba,  8b       d8  88   ,adPPYba,   ,adPPYba,  88aaaaaa8P'  88       88  8b,dPPYba,   8b,dPPYba,    ,adPPYba,  8b,dPPYba,  
+#   `"""""8b,  a8P_____88  88P'   "Y8  `8b     d8'  88  a8"     ""  a8P_____88  88""""88'    88       88  88P'   `"8a  88P'   `"8a  a8P_____88  88P'   "Y8  
+#         `8b  8PP"""""""  88           `8b   d8'   88  8b          8PP"""""""  88    `8b    88       88  88       88  88       88  8PP"""""""  88          
+# Y8a     a8P  "8b,   ,aa  88            `8b,d8'    88  "8a,   ,aa  "8b,   ,aa  88     `8b   "8a,   ,a88  88       88  88       88  "8b,   ,aa  88          
+#  "Y88888P"    `"Ybbd8"'  88              "8"      88   `"Ybbd8"'   `"Ybbd8"'  88      `8b   `"YbbdP'Y8  88       88  88       88   `"Ybbd8"'  88          
+
+
+
+#------------------------------------------------------------------------------------
+# Initialisation of globals.
+
+set -o nounset
+MYDIR=$( dirname "$(readlink -f "$0")" )
+source "$MYDIR/variables.sh"
+source "$MYDIR/utils.sh"
+
+#------------------------------------------------------------------------------------
+# showhelp - give some info about the service. SERVICENAME and IMAGENAME are provided by variables.sh.
+
+function showhelp {
+cat <<EOF >&2
+
+NAME
+   ${SERVICENAME}
+       
+SYNOPSIS
+   ${SERVICENAME} [-a] build
+   ${SERVICENAME} [-a] info
+   ${SERVICENAME} [-a] check
+   ${SERVICENAME} [-a] test
+   
+   ${SERVICENAME} configure     
+   
+DESCRIPTION
+   A simple dRunner container from ${IMAGENAME} (${INSTALLTIME})
+   
+EOF
+}
+
+#------------------------------------------------------------------------------------
+
+function sayinfo { echo -e "] \e[2m${1}\e[0m" ; }
+function saygood { echo -e "] \e[32m${1}\e[0m" ; }
+function saybad { echo -e "] \e[31m\e[1m${1}\e[0m" ; }
+
+function dockerrun {
+   local RVAL=0
+   docker run -i --name="${SERVICENAME}-${COMMAND}" -h "${HOSTNAME}" "${DOCKEROPTS[@]}" "${IMAGENAME}" "$@" || RVAL=$?
+   docker rm "${SERVICENAME}-${COMMAND}" >/dev/null
+   if [ $RVAL -ne 0 ]; then die "${SERVICENAME} ${COMMAND} failed." ; fi
+}
+
+function isrepo {
+   (
+      cd "$1"
+      git rev-parse --abbrev-ref HEAD  >/dev/null 2>&1
+   )
+}
+
+function isdev {
+   local BRANCH=$(cd "$1" ; git rev-parse --abbrev-ref HEAD 2>/dev/null)
+   [ "$BRANCH" = "dev" ]
+}
+
+
+function info_low {
+   sayinfo "DSERVICE:       $DSERVICE"
+   sayinfo "BUILDNAME:      $BUILDNAME"
+   sayinfo "FULLNAME:       $BRANCHEDIMAGENAME"
+   sayinfo "DEVSERVICENAME: $DEVSERVICENAME"
+   sayinfo "DIRECTORY:      $1"
+   return 0
+}
+
+
+#---------------------------------------------------------------------------------
+
+
+function build_low {
+   P="$1"
+   [ -e "$P/Dockerfile" ] || { saybad "No Dockerfile in $P, it's not a valid dService!" ; return 1 ; }
+   echo "Building ${BRANCHEDIMAGENAME}..."
+   cd "$P" ; docker build -t "${BRANCHEDIMAGENAME}" . && saygood "Built ${BRANCHEDIMAGENAME}"
+
+   if [ "$BASEIMAGENAME" = "drunner/install-support" ]; then
+      echo " "
+      drunner update && saygood "Drunner updated with install-support:dev just built."
+   elif [ -n "$DEVSERVICENAME" ] && isdev "$P" ; then      
+      echo " "
+      drunner status "$DEVSERVICENAME" >/dev/null 2>&1
+      if [ $? -ne 0 ]; then
+         drunner install "$BRANCHEDIMAGENAME" "$DEVSERVICENAME" || { saybad "Couldn't install ${DEVSERVICENAME}" ; return 1 ; }
+         drunner status "$DEVSERVICENAME" || { saybad "Couldn't install ${DEVSERVICENAME}" ; return 1 ; }
+      fi
+      drunner recover "$DEVSERVICENAME" "$BRANCHEDIMAGENAME" && saygood "drunner updated with $BRANCHEDIMAGENAME as service $DEVSERVICENAME"
+   fi
+}
+
+
+function check_low {
+   [ "$DSERVICE" = "yes" ] || { sayinfo "$1 - skipping non-dService $BRANCHEDIMAGENAME." ; return 1 ; }
+   drunner checkimage "$BRANCHEDIMAGENAME" && saygood "$BRANCHEDIMAGENAME is valid."
+}
+
+function test_low {
+   [ "$DSERVICE" = "yes" ] || { sayinfo "$1 - skipping non-dService $BRANCHEDIMAGENAME." ; return 0 ; }
+   dtest test "$BRANCHEDIMAGENAME"
+}
+
+function title {
+   echo " ">&2
+   echo " ">&2
+   echo -e "\e[1;4;32m${1}\e[0m">&2
+   echo " ">&2
+}
+
+function run1cmd {
+   local THECMD="$1"
+   local THEDIR="$2"
+   [ -d "$THEDIR" ] || { saybad "Error - $THEDIR does not exist." ; return 1 ; }
+   [ -e "$THEDIR/ddev.sh" ] || { sayinfo "Not ddev compatible (missing $THEDIR/ddev.sh)" ; return 0 ; }
+   BUILDNAME=""
+   DSERVICE=""
+   DEVSERVICENAME="notset"
+   source "$THEDIR/ddev.sh"
+   [ -n "$BUILDNAME" ] || { saybad "$THEDIR/ddev.sh does not set BUILDNAME." ; return 1 ; }
+   [ -n "$DSERVICE" ] || { saybad "$THEDIR/ddev.sh does not set DSERVICE." ; return 1 ; }
+   [ "$DSERVICE" = "yes" ] || [ "$DSERVICE" = "no" ] || { saybad "DSERVICE must be yes or no in $THEDIR/ddev.sh." ; return 1 ; }
+   [ "$DEVSERVICENAME" != "notset" ] || { saybad "DEVSERVICENAME must be set to empty string or service name in $THEDIR/ddev.sh." ; return 1 ;}
+   
+   BASEIMAGENAME="$BUILDNAME"
+   BRANCHEDIMAGENAME="$BUILDNAME"   
+   if isrepo "$THEDIR" ; then
+      local BRANCH=$(cd "$THEDIR" ; git rev-parse --abbrev-ref HEAD 2>/dev/null)
+      [ "$BRANCH" = "master" ] || BRANCHEDIMAGENAME="${BUILDNAME}:${BRANCH}"
+   fi  
+   info_low "$THEDIR"
+   [ "$THECMD" = "info_low" ] || "$THECMD" "$THEDIR"
+}
+
+function runcmd {
+   [ -v DEVPATH ] || { run1cmd "$1" "$PWD" ; return $? ; }  
+   local TESTSOK=0
+   local TOTALIMGS=0
+   (
+   cd "$DEVPATH"
+   for d in */ ; do 
+      title "Processing ${d%/}"
+      run1cmd "$1" "${DEVPATH}/${d%/}" || ((++TESTSOK))
+      ((++TOTALIMGS))
+   done
+   echo " ">&2
+   echo " ">&2
+   [ "$TESTSOK" -eq 0 ] || { saybad "$1 only succeeded on (($TOTALIMGS-$TESTSOK)) / $TOTALIMGS images ( $TESTSOK failed )!" ; exit 1 ; }
+   saygood "$1 succeeded on $TOTALIMGS / $TOTALIMGS images."
+   )   
+}
+
+#------------------------------------------------------------------------------------
+# The main function. We can add any commands we'd like here!
+
+function main {
+   [ "$#" -gt 0 ] || { showhelp ; exit 1 ; }
+   COMMAND="${1}" ; shift
+
+   if [ "$COMMAND" = "-a" ]; then
+      DEVPATH=$(dockerrun cat /config/path) || die "Call ${SERVICENAME} configure first."
+      [ "$#" -gt 0 ] || { showhelp ; exit 1 ; }
+      COMMAND="${1}" ; shift      
+   fi
+   
+   case "$COMMAND" in 
+   
+          #--- standard (required) commands
+   
+         install)
+            ;;
+            
+         obliterate)
+            ;;
+                     
+         uninstall)
+            ;;
+                     
+         backupstart)
+            #BACKUPPATH="$1"
+            ;;
+         
+         backupend)
+            #BACKUPPATH="$1"
+            ;;
+         
+         restore)
+            #RESTOREPATH="$1"
+            ;;
+         
+         help)
+            showhelp
+            ;;
+         
+         enter)
+            dockerrun /bin/bash "$@"
+            ;;
+         
+         updatestart)
+            ;;
+
+         updateend)
+            ;;
+         
+         selftest)
+            ;;
+            
+         #--- custom commands
+         
+         build)
+            runcmd build_low
+            ;;
+                        
+         info)
+            runcmd info_low
+            ;;
+            
+         check)
+            runcmd check_low
+            ;;
+            
+         test)
+            runcmd test_low
+            ;;   
+            
+         configure)
+            dockerrun bash -c "echo $PWD > /config/path"
+            DEVPATH=$(dockerrun cat /config/path) || die "Configure failed."
+            echo "Path set to $DEVPATH"
+            ;;
+            
+         clone)
+            [ -v DEVPATH ] || die "Clone requires -a flag."
+            local PROJECTS=("install-support" "install" "samba" "dtest" "ddev")
+            PROJECTS+=("simplesecrets" "minecraft" "helloworld")
+            for PROJECT in "${PROJECTS[@]}"; do
+               (
+               cd "${DEVPATH}"
+               if [ ! -e "$PROJECT" ]; then
+                  (
+                  git clone "https://github.com/drunner/${PROJECT}.git" || die "Failed to clone $PROJECT"
+                  cd ${PROJECT}
+                  git checkout dev
+                  )
+                  [ $? -eq 0 ] || die "Failed to set up $PROJECT."
+               fi
+               )
+            done      
+            ;;
+                                    
+         #--- unrecognised commands
+
+         *)
+            showhelp
+            die "Unrecognised command ${CODE_S}${COMMAND}${CODE_E}"            
+            ;;
+   esac
+}
+
+#------------------------------------------------------------------------------------
+
+main "$@"

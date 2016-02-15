@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Recover from broken ddev build. When it happens, ddev is broken
+# so can't build and install itself.
+
+function isdev {
+   local BRANCH=$(cd "$1" ; git rev-parse --abbrev-ref HEAD 2>/dev/null)
+   [ "$BRANCH" = "dev" ]
+}
+
+isdev "." || { echo "Need to git checkout dev?">&2 ; exit 1 ;}
+
+docker build -t drunner/ddev:dev .
+drunner recover ddev drunner/ddev:dev
