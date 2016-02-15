@@ -1,0 +1,132 @@
+#!/bin/bash
+set -o nounset
+
+source "$( dirname "$(readlink -f "$0")" )/variables.sh"
+
+# This script is run on the host.
+# It launches the docker container and runs our hello world command.
+
+function upline { echo -en "\e[1A">&2 ; }
+
+function clipprint {
+   echo -e -n "[ $1 ] " >&2
+   echo -e "$2" | awk -v len=75 '{ if (length($0) > len) print substr($0, 1, len-3) "..."; else print; }' >&2
+}
+
+# call first
+function checkingmsg { PFMSG="$1" ; clipprint "\e[2m?\e[0m" "$PFMSG" ; }
+function passmsg { upline ; clipprint "\e[32m\u2714\e[0m" "$PFMSG" ; }
+function failmsg { 
+   upline
+   clipprint "\e[31m\e[1m\u2718\e[0m" "$PFMSG" 
+   echo " ">&2
+   echo "--------------------------------------------------------------------------------">&2
+   echo -e "${1:-"No details available."}">&2
+   echo "--------------------------------------------------------------------------------">&2
+   echo " ">&2
+ }
+
+# call second to rewrite with tick/cross
+# expectpass VALUETOTEST 
+function expectpass {
+   [ "$1" -ne 0 ] || { passmsg ; return ; }
+   failmsg "$2"
+   RVAL=1
+}
+
+function title {
+   echo " ">&2
+   echo " ">&2
+   echo -e "\e[1;4;32m${1}\e[0m">&2
+   echo " ">&2
+}
+
+# works when there's nothing tricky in the string.
+# testcommand COMMAND INVERT
+function testcommand {
+   checkingmsg "$1"
+   TCFAILDETAILS=$(bash -c "$1" 2>&1) || { failmsg "$TCFAILDETAILS" ; RVAL=1 ; return 1 ; }
+   passmsg 
+}
+function testcommandfails {
+   checkingmsg "$1"
+   TCFFAILDETAILS=$(bash -c "$1" 2>&1) || { passmsg ; return 0 ; }
+   failmsg "$TCFFAILDETAILS" ; RVAL=1 ; return 1
+}
+
+function testservice {
+   local SERVICENAME="$1"  
+   
+   testcommand "${SERVICENAME}"
+   testcommand "${SERVICENAME} help"
+   testcommandfails "${SERVICENAME} commandthatdoesntexist"
+   
+   # do messaging after selftest so that dService can output its own tests.
+   local SLFTSTRVAL=0
+   local SLFTST="${SERVICENAME} selftest"
+   TCFAILDETAILS=$(bash -c "$1" 2>&1) || SLFTSTRVAL=1
+   checkingmsg "$SLFTST"
+   [ "$SLFTSTRVAL" -ne 0 ] || { passmsg ; return 0 ; }
+   failmsg "$TCFFAILDETAILS" ; RVAL=1 ; return 1
+}
+
+function testdrunner {
+   RVAL=0
+   local IMAGENAME="$1"
+
+   title "Testing $IMAGENAME"
+   
+   testcommandfails "false"
+   testcommand "true"
+   
+   local SERVICE="test-${IMAGENAME//[![:alnum:]]/}"
+   
+   checkingmsg "create tempdir"
+   local TEMPDIR=$(mktemp -d -p "$SERVICETEMPDIR")
+   expectpass $? "$TEMPDIR"
+   
+   ( #subshell, so if we exit we still clean up
+      testcommand "drunner checkimage ${IMAGENAME}" || { failmsg "Not dRunner compatible. Aborting tests." ; exit 1 ;}
+      testcommand "drunner install ${IMAGENAME} ${SERVICE}"
+
+      # test uninstall process.      
+      testcommand "drunner uninstall ${SERVICE}"
+      testcommand "drunner install ${IMAGENAME} ${SERVICE}"
+      testcommand "drunner uninstall ${SERVICE}"
+      testcommand "drunner recover ${SERVICE} ${IMAGENAME}"
+
+      # test update.
+      testcommand "drunner update ${SERVICE}"
+            
+      checkingmsg "drunner enter ${SERVICE} -c \"echo hi\""
+      local FAILDETAILS=$(drunner enter "${SERVICE}" -c "echo hi" 2>&1)
+      expectpass $? "$FAILDETAILS"
+           
+      local PASS="password123"
+      testcommand "PASS=${PASS} drunner backup ${SERVICE} ${TEMPDIR}/backup"
+      testcommand "PASS=${PASS} drunner restore ${TEMPDIR}/backup ${SERVICE}-clone"
+      testcommand "drunner update ${SERVICE}-clone"
+
+      testservice "${SERVICE}"
+      testservice "${SERVICE}-clone"
+
+      # exit the subshell.
+      exit "$RVAL"
+   )
+   RVAL=$?
+   
+   testcommand "drunner obliterate ${SERVICE}-clone"
+   testcommand "drunner obliterate ${SERVICE}"
+   testcommand "rm -rf ${TEMPDIR}"
+   
+   echo " ">&2
+   exit "$RVAL"
+}
+
+
+testdrunner "${1:-$IMAGENAME}"
+
+# http://patorjk.com/software/taag/#p=display&f=Univers&t=dRunner
+# http://shapecatcher.com/
+# http://misc.flogisoft.com/bash/tip_colors_and_formatting
+

@@ -1,0 +1,68 @@
+#!/bin/bash
+set -o nounset
+set -e
+
+# ██╗   ██╗ █████╗ ██╗     ██╗██████╗  █████╗ ████████╗ ██████╗ ██████╗ 
+# ██║   ██║██╔══██╗██║     ██║██╔══██╗██╔══██╗╚══██╔══╝██╔═══██╗██╔══██╗
+# ██║   ██║███████║██║     ██║██║  ██║███████║   ██║   ██║   ██║██████╔╝
+# ╚██╗ ██╔╝██╔══██║██║     ██║██║  ██║██╔══██║   ██║   ██║   ██║██╔══██╗
+#  ╚████╔╝ ██║  ██║███████╗██║██████╔╝██║  ██║   ██║   ╚██████╔╝██║  ██║
+#   ╚═══╝  ╚═╝  ╚═╝╚══════╝╚═╝╚═════╝ ╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝
+                                                                                         
+# Formatting for comamnds - standardised.
+readonly ecode=$(printf "\e") 
+readonly CODE_S="$ecode[32m"
+readonly CODE_E="$ecode[0m"
+
+# die MESSAGE 
+function die {
+   [ -e "${ROOTPATH}/services/${SERVICENAME}" ] || { echo -e "\e[31m\e[1mThere's no installed service called \"${SERVICENAME}\".\e[0m" ; exit 1 ; }
+
+   echo -e " ">&2
+   echo -e "\e[31m\e[1mService broken. ${1}\e[0m">&2
+   echo -e " ">&2
+   
+   [ -z "$NUKEOK" ] || exit 1
+      
+   echo -e " ">&2
+   echo -e "You can try recovering with ${CODE_S}drunner recover ${SERVICENAME}${CODE_E}.">&2
+   echo -e "That will preserve data and configuration and should be safe to try.">&2
+   echo -e " ">&2
+   exit 1
+}
+
+
+readonly MYDIR=$( dirname "$(readlink -f "$0")" )
+if ! "${MYDIR}/validator-drunner" ; then exit 1 ; fi
+ROOTPATH=$(realpath "$MYDIR/../" | tr -d '\r\n')
+
+source "${ROOTPATH}/config.sh"
+
+# Validate service is installed okay
+SERVICENAME=${1:-""}
+NUKEOK=${2:-""}
+
+if [ -z "SERVICENAME" ]; then 
+   echo -e "Usage: ${CODE_S}validator-service SERVICENAME${CODE_E}">&2
+   echo -e "SERVICENAME=$1"
+   exit 1
+fi
+
+[ -d "${ROOTPATH}/services/${SERVICENAME}" ] || die "The service is not installed in ${ROOTPATH}/services/${SERVICENAME}."
+[ -d "${ROOTPATH}/services/${SERVICENAME}/drunner" ] || die "The service's scripts are not installed correctly."
+
+# Check mandatory files in image (global var IMAGENAME) before touching host. Is it a valid dr container?
+readonly REQDFILES=("drunner/servicerunner")
+for CFILE in "${REQDFILES[@]}"; do
+   [ -e "${ROOTPATH}/services/${SERVICENAME}/$CFILE" ] || die "Required file not present: $CFILE"
+done
+
+readonly SOURCEFILES=("imagename.sh" "drunner/servicecfg.sh" "drunner/variables.sh" "drunner/utils.sh")
+for CFILE in "${SOURCEFILES[@]}"; do
+   [ -e "${ROOTPATH}/services/${SERVICENAME}/$CFILE" ] || die "Required file not present: $CFILE"
+   source "${ROOTPATH}/services/${SERVICENAME}/$CFILE" || die "Couldn't source ${ROOTPATH}/services/${SERVICENAME}/$CFILE"
+done
+
+[ -v IMAGENAME ] || die "IMAGENAME wasn't set by imagename.sh"
+
+exit 0

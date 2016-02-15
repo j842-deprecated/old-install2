@@ -1,0 +1,346 @@
+#!/bin/bash
+set -o nounset
+
+#          88  88888888ba
+#          88  88      "8b
+#          88  88      ,8P
+#  ,adPPYb,88  88aaaaaa8P'  88       88  8b,dPPYba,   8b,dPPYba,    ,adPPYba,  8b,dPPYba,
+# a8"    `Y88  88""""88'    88       88  88P'   `"8a  88P'   `"8a  a8P_____88  88P'   "Y8
+# 8b       88  88    `8b    88       88  88       88  88       88  8PP"""""""  88
+# "8a,   ,d88  88     `8b   "8a,   ,a88  88       88  88       88  "8b,   ,aa  88
+#  `"8bbdP"Y8  88      `8b   `"YbbdP'Y8  88       88  88       88   `"Ybbd8"'  88
+#
+#
+#  manage docker containers in a simple and consistent way.
+#
+#  See:
+#    https://github.com/j842/drunner
+#
+# ------------------------------------------------------------------
+
+
+#------------------------------------------------------------------------------------
+
+# Initialisation.
+
+# Everything is based on the ROOTPATH, which is determined relative to the location of this
+# script.
+function setRootPath {
+   local SUPPORTDIR=$( dirname "$(readlink -f "$0")" )
+   if ! "${SUPPORTDIR}/validator-drunner" ; then exit 1 ; fi
+   ROOTPATH=$(realpath "$SUPPORTDIR/../" | tr -d '\r\n')
+}
+
+setRootPath
+[ -e "${ROOTPATH}/config.sh" ] || { echo "Installation broken. Please run drunner-install.">&2 ; exit 1 ; }
+source "${ROOTPATH}/config.sh"
+[ -d "${ROOTPATH}" ] || { echo "Installation broken. Please run drunner-install.">&2 ; exit 1 ; }
+
+source "${ROOTPATH}/support/buildtime.sh"
+source "${ROOTPATH}/support/drunner-util-functions.sh"
+source "${ROOTPATH}/support/drunner-install-service.sh"
+source "${ROOTPATH}/support/drunner-backup-restore.sh"
+
+if [ "$EUID" -eq 0 ]; then echo "Please do not run as root" ; exit 1 ; fi
+if ! command_exists docker ; then die "Requires docker to be installed." ; fi
+
+# Might work fine on Ubuntu - to test at some stage.
+if [ "$(uname -rv | grep -c Debian)" -eq 0 ]; then die "Built for Debian only." ; fi
+
+#------------------------------------------------------------------------------------
+
+# showservices
+function showservices {
+   # list available services.
+   echo "AVAILABLE SERVICES"
+   find "$ROOTPATH/services" -maxdepth 1 -mindepth 1 -type d | while read SPATH; do
+      if [ -e "${SPATH}/imagename.sh" ]; then
+         source "${SPATH}/imagename.sh"
+         printf "   %-15s - %-55s\n" "${SPATH##*/}" "$IMAGENAME"
+      else
+         printf "   %-15s - %-55s\n" "${SPATH##*/}" "Broken service"
+      fi
+   done
+   echo " "
+}
+
+#------------------------------------------------------------------------------------
+
+# showusage
+function showusage {
+cat <<EOF >&2
+
+NAME
+   drunner - docker Runner
+
+VERSION
+   drunner-install: ${DRUNNERINSTALLTIME}
+                    ${DRUNNERINSTALLURL}
+
+   drunner-support: ${SUPPORTBUILDTIME}
+                    ${SUPPORTIMAGE}
+
+LOCATION
+   $ROOTPATH
+
+SYNOPSIS
+   drunner clean
+   drunner list
+   drunner update
+   drunner checkimage IMAGENAME
+
+   [PASS=?] drunner backup  SERVICENAME BACKUPFILE
+   [PASS=?] drunner restore BACKUPFILE  SERVICENAME
+
+   drunner install    IMAGENAME [SERVICENAME]
+   drunner update     SERVICENAME
+   drunner recover    SERVICENAME
+   drunner uninstall  SERVICENAME
+   drunner obliterate SERVICENAME
+   drunner enter      SERVICENAME [ARGS]
+   drunner status     SERVICENAME
+
+   SERVICENAME
+   SERVICENAME COMMAND ARGS
+
+DESCRIPTION
+   Provides a standard way to manage and run containers supporting dr.
+   Intended to be used both manually and via Ansible.
+   See https://github.com/j842/drunner
+
+EXIT CODE
+   0   - success
+   1   - error
+   3   - no changes made
+
+EOF
+}
+
+#------------------------------------------------------------------------------------
+
+# updatedr - udpates dRunner.
+function updatedr {
+   # use the container to get the latest dr-install script
+   local TEMPDIR="$(mktempd_drunner)"
+   ( # subshell so we can be sure we remove the temp folder.
+      echo "Downloading from $DRUNNERINSTALLURL"
+      local TRGT="/tempdir/drunner-install"
+      docker run -it --name="drunner-downloadfile" -v "${TEMPDIR}:/tempdir" "drunner/install-rootutils" \
+         bash -c "wget --no-cache -nv -O $TRGT ${DRUNNERINSTALLURL} && chmod 0555 $TRGT" >/dev/null
+      local RVAL="$?"
+      docker rm "drunner-downloadfile" >/dev/null 2>&1
+
+      [ "$RVAL" -eq 0 ] || die "Unable to get drunner-install."
+      [ -e "${TEMPDIR}/drunner-install" ] || die "drunner-install mysteriously missing."
+
+      # run it to update the installation.
+      "${TEMPDIR}/drunner-install" "$ROOTPATH" || die "dRunner update failed (drunner-install script failed)"
+   )
+   local RVAL=$?
+
+   # tidy up and exit (it's not safe to continue with the old script after updating dRunner like this)
+   rm -rf "${TEMPDIR}"
+   exit "$RVAL"
+}
+
+#------------------------------------------------------------------------------------
+
+function showservicehelp {
+   if [ -z "$SERVICENAME" ]; then die "Can't show service help when we don't know what service it is."; fi
+   local SERVICERUNNER="${ROOTPATH}/services/${SERVICENAME}/drunner/servicerunner"
+
+   if [ -e "$SERVICERUNNER" ]; then
+      bash "${SERVICERUNNER}" help
+      exit 0
+   else
+      showservices
+      echo " ">&2
+      die "Service ${SERVICENAME} is broken or does not exist."
+   fi
+}
+
+#------------------------------------------------------------------------------------
+
+# also loads the service, setting IMAGENAME, VOLUMES etc.
+function setServiceName {
+   [ "$#" -gt 0 ] || { showusage ; die "drunner $DCOMMAND requires the SERVICENAME." ; }
+   SERVICENAME="$1"
+   [ -e "${ROOTPATH}/services/${SERVICENAME}" ] || die "Unrecognised service: ${SERVICENAME}. Is it installed?"
+   validateLoadService
+}
+
+#------------------------------------------------------------------------------------
+
+# processServiceCommands COMMAND SERVICENAME [ARGS..]
+function processServiceCommands {
+   # all these commands have SERVICENAME as second argument.
+   DCOMMAND="$1" ; shift
+   case "$DCOMMAND" in
+      update)
+         setServiceName "$1" ; shift
+         updateservice || die "Update failed."
+         alldone "Update complete."
+         ;;
+
+      backup)
+         if [ "$#" -eq 2 ]; then
+            setServiceName "$1" ; shift
+            backup "$1" || die "Backup failed."
+            alldone "Backup complete."
+         else
+            dieusage "[PASS=?] drunner backup SERVICENAME BACKUPFILE"
+         fi
+         ;;
+
+      enter)
+         setServiceName "$1" ; shift
+         SCRIPTTORUN="${ROOTPATH}/services/${SERVICENAME}/drunner/servicerunner"
+         bash "${SCRIPTTORUN}" "enter" "$@" || die "Failed."
+         alldone "Complete."
+         ;;
+
+      # servicecmd SERVICENAME COMMAND
+      servicecmd)
+         [ $# -gt 0 ] || die "$DCOMMAND shouldn't be invoked manually."
+         setServiceName "$1" ; shift
+         local RESERVEDWORDS=("install" "backupstart" "backupend" "backup" "restore" "update" "enter" "uninstall" "obliterate")
+         if [ "$#" -eq 0 ] || [ "$1" = "help" ]; then
+            showservicehelp
+            die "$DCOMMAND $SERVICENAME requires a subcommand."
+         elif elementIn "$1" "${RESERVEDWORDS[@]}"; then
+            die "$1 is a reserved word. Try ${CODE_S}drunner ${1} ${SERVICENAME}${CODE_E} instead."
+         else
+            SCRIPTTORUN="${ROOTPATH}/services/${SERVICENAME}/drunner/servicerunner"
+            SUBCOMMAND="$1" ; shift
+            [ -e "${SCRIPTTORUN}" ] || die "${SERVICENAME} is broken. Try ${CODE_S}drunner recover ${SERVICENAME}${CODE_E}"
+            "${SCRIPTTORUN}" "$SUBCOMMAND" "$@" || die "${SERVICENAME} $SUBCOMMAND $* failed."
+            #alldone "${SERVICENAME} $SUBCOMMAND $* complete."
+         fi
+         ;;
+
+      *)
+         die "Unknown command $1"
+   esac
+}
+
+
+#------------------------------------------------------------------------------------
+
+# processdRunnerCommands ARGS
+function processdRunnerCommands {
+   # start with high level commands (clean, list, update), and commands on a service
+   # that do not expect the service to be fully configured (install, restore, destroy)
+   DCOMMAND="$1" ; shift
+   case "$DCOMMAND" in
+      clean)
+         docker run --rm -v /var/run/docker.sock:/var/run/docker.sock spotify/docker-gc
+         alldone "Clean completed."
+         ;;
+
+      list)
+         showservices || die "Failed to show services."
+         exit 0
+         ;;
+
+      update)
+         # if no args then update dr itself.
+         [ "$#" -gt 0 ] || { updatedr || die "Failed to update dRunner." ; alldone "Update complete." ; }
+         # otherwise fall through - we want to update a service not dr.
+         ;;
+
+      checkimage)
+         [ "$#" -eq 1 ] || dieusage "drunner checkimage IMAGENAME"
+         IMAGENAME="$1" ; shift
+         validate-image || die "Not valid."
+         alldone "Valid."
+         ;;
+
+      install)
+         if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+            dieusage "drunner install IMAGENAME [SERVICENAME]"
+         fi
+
+         IMAGENAME="$1" ; shift
+         SERVICENAME="${IMAGENAME##*/}"
+         SERVICENAME="${SERVICENAME%%:*}"
+         [ "$#" -eq 0 ] || { SERVICENAME="$1" ; shift ; }
+
+         installservice || die "Installation failed."
+         alldone "Installation succeeded."
+         ;;
+
+      restore)
+         [ "$#" -eq 2 ] || dieusage "[PASS=?] drunner restore BACKUPFILE SERVICENAME"
+         local BACKUPFILE="$1" ; shift
+         SERVICENAME="$1" ; shift
+         restore "$BACKUPFILE" || die "Restore failed."
+         alldone "Restore succeeded."
+         ;;
+
+      status)
+         [ "$#" -eq 1 ] || dieusage "drunner status SERVICENAME"
+         SERVICENAME="$1" ; shift
+         [ -e "${ROOTPATH}/services/${SERVICENAME}" ] || die "${SERVICENAME} is not installed. If you need to recover, install it and any existing Docker volumes will be preserved."
+         "${ROOTPATH}/support/validator-service" "$SERVICENAME" || die "Validation failed!"
+         alldone "${SERVICENAME} is installed and okay."
+         ;;
+
+      recover)
+         if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+            dieusage "drunner recover SERVICENAME [IMAGENAME]"
+         fi
+         SERVICENAME="$1" ; shift
+         uninstallService || echo "Uninstall had errors, but completed anyway."
+
+         IMAGENAME=""
+         loadServiceSilent
+         [ "$#" -eq 0 ] || { IMAGENAME="$1" ; shift ; }
+         [ -n "$IMAGENAME" ] || die "${SERVICENAME} does not have an existing image definition. You need to use ${CODE_S}drunner recover SERVICENAME IMAGENAME${CODE_E}"
+
+         installservice || die "Recover failed."
+         alldone "Recover complete."
+         ;;
+
+      uninstall)
+         [ $# -eq 1 ] || dieusage "drunner uninstall SERVICENAME"
+         SERVICENAME="$1"
+         uninstallService || echo "Uninstall had errors, but completed anyway."
+         alldone "${SERVICENAME} uninstalled. Data retained. Install again to recover."
+         ;;
+
+      obliterate)
+         [ "$#" -eq 1 ] || dieusage "drunner obliterate SERVICENAME"
+         SERVICENAME="$1"
+         obliterateService || die "${SERVICENAME} obliterated, but there were errors."
+         alldone "${SERVICENAME} and its containers obliterated - all data destroyed."
+         ;;
+
+      unittests)
+         test-imageNameisDev
+         ;;
+   esac
+}
+
+#------------------------------------------------------------------------------------
+
+# ███╗   ███╗ █████╗ ██╗███╗   ██╗
+# ████╗ ████║██╔══██╗██║████╗  ██║
+# ██╔████╔██║███████║██║██╔██╗ ██║
+# ██║╚██╔╝██║██╔══██║██║██║╚██╗██║
+# ██║ ╚═╝ ██║██║  ██║██║██║ ╚████║
+# ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+
+function main {
+
+   [ "$#" -gt 0 ] || { showusage ; showservices ; exit 0 ;}
+
+   # Process (clean, list, update, install, restore, destroy)
+   # These ones don't require a valid service.
+   processdRunnerCommands "$@"
+
+   # everything from now on is expected to be based on a valid service
+   processServiceCommands "$@"
+}
+
+#--------------------------------------------------------------------------
+main "$@"

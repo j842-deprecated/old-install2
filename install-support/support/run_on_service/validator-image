@@ -1,0 +1,38 @@
+#!/bin/bash
+set -o nounset
+set -e
+
+# ██╗   ██╗ █████╗ ██╗     ██╗██████╗  █████╗ ████████╗ ██████╗ ██████╗ 
+# ██║   ██║██╔══██╗██║     ██║██╔══██╗██╔══██╗╚══██╔══╝██╔═══██╗██╔══██╗
+# ██║   ██║███████║██║     ██║██║  ██║███████║   ██║   ██║   ██║██████╔╝
+# ╚██╗ ██╔╝██╔══██║██║     ██║██║  ██║██╔══██║   ██║   ██║   ██║██╔══██╗
+#  ╚████╔╝ ██║  ██║███████╗██║██████╔╝██║  ██║   ██║   ╚██████╔╝██║  ██║
+#   ╚═══╝  ╚═╝  ╚═╝╚══════╝╚═╝╚═════╝ ╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝
+                                                                      
+
+# Validate the image I'm running in as being Docker Runner compatible
+# Gets copied to the host as part of installing dr-support, then mounted
+# in the other container by dr to run the check.
+
+function die {
+   echo "Not Docker Runner compatible - $1">&2
+   exit 1   
+}
+
+if [ "$UID" -eq 0 ]; then 
+   die "the container runs as root." 
+fi
+
+# Check mandatory files in image (global var IMAGENAME) before touching host. Is it a valid dr container?
+readonly REQDFILES=("servicecfg.sh" "servicerunner")
+for CFILE in "${REQDFILES[@]}"; do
+   if [ ! -e "/drunner/$CFILE" ]; then
+      die "required file not present: /drunner/$CFILE"
+   fi
+done
+
+source /drunner/servicecfg.sh || die "Couldn't load servicecfg.sh"
+
+exit 0
+
+

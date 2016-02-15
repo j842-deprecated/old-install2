@@ -1,0 +1,56 @@
+#!/bin/bash
+set -o nounset
+
+#  ██████╗ ██████╗ ███╗   ███╗██████╗ ██████╗ ███████╗███████╗███████╗
+# ██╔════╝██╔═══██╗████╗ ████║██╔══██╗██╔══██╗██╔════╝██╔════╝██╔════╝
+# ██║     ██║   ██║██╔████╔██║██████╔╝██████╔╝█████╗  ███████╗███████╗
+# ██║     ██║   ██║██║╚██╔╝██║██╔═══╝ ██╔══██╗██╔══╝  ╚════██║╚════██║
+# ╚██████╗╚██████╔╝██║ ╚═╝ ██║██║     ██║  ██║███████╗███████║███████║
+#  ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝
+                                                                                                                                                   
+readonly MYDIR=$( dirname "$(readlink -f "$0")" )
+ROOTPATH=$(realpath "$MYDIR/../" | tr -d '\r\n')
+source "${ROOTPATH}/support/drunner-util-functions.sh"
+
+
+#------------------------------------------------------------------------------------
+# PASS=? compress SOURCEPATH/VOLUME ARCHIVEFOLDER ARCHIVENAME
+
+if [ $# -ne 3 ]; then die "PASS=? compress SOURCEPATH/VOLUME ARCHIVEFOLDER ARCHIVENAME" ; fi
+
+if [ -d "$1" ]; then
+   # path
+   SOURCE=$(realpath "$1" | tr -d '\r\n')
+   if [ $? -ne 0 ]; then die "compress: Couldn't find source path ${1}." ; fi
+else
+   # volume
+   volexists "$1"
+   if [ $? -ne 0 ]; then die "$1 is not a valid path nor Docker volume container." ; fi   
+   SOURCE="$1"
+fi
+
+ARCHIVEFOLDER=$(realpath "$2" | tr -d '\r\n')
+if [ $? -ne 0 ]; then die "compress: Couldn't find destination path ${2}." ; fi
+
+ARCHIVENAME="$3"
+
+TEMPDIR="$(mktempd_drunner)"
+
+# ensure PASS exists.
+[ -v PASS ] || PASS=""
+
+# compress as root so we can preserve owner/permissions.
+docker run -i -t --name="dr_compress" -e "PASS=${PASS}" \
+            -v "${SOURCE}:/src" -v "${TEMPDIR}:/dst" drunner/install-rootutils \
+            bash -c "dr_compress ${ARCHIVENAME} && chown $EUID:${GROUPS[0]} /dst/${ARCHIVENAME}"
+RVAL=$?
+docker rm "dr_compress" >/dev/null 2>&1
+
+if [ "$RVAL" -eq 0 ]; then
+   mv "${TEMPDIR}/${ARCHIVENAME}" "${ARCHIVEFOLDER}"
+   RVAL=$?
+fi
+rm -r "${TEMPDIR}"
+
+exit "$RVAL"
+

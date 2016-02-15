@@ -1,0 +1,34 @@
+#!/bin/bash
+set -o nounset
+
+# die MESSAGE 
+function die {
+   if [ -n "$1" ]; then
+      echo "$1" <&2
+   else
+      echo "Unexpected error. Exiting."<&2
+   fi
+   exit 1
+}
+
+#------------------------------------------------------------------------------------
+# PASS=? dr_compress ARCHIVENAME
+
+if [ "$#" -ne 1 ]; then die "PASS=? dr_compress ARCHIVENAME" ; fi
+
+SOURCEFOLDER="/src"
+ARCHIVEPATH="/dst/$1"
+
+if [ -e "$ARCHIVEPATH" ]; then die "Archive $1 already exists. Aborting." ; fi
+if [ ! -d "$SOURCEFOLDER" ]; then die "dr_compress: Source folder does not exist: $SOURCEFOLDER"; fi
+
+# default to empty string if doesn't exist, then test for empty string.
+if [ -n "${PASS-}" ]; then 
+   PASSCMD="-p${PASS}"; 
+else
+   PASSCMD=""
+   echo "WARNING: No password supplied. Backup is not encrypted!">&2
+fi
+
+tar cf - -C "$SOURCEFOLDER" . | 7za a -si "${PASSCMD}" "$ARCHIVEPATH"  >/dev/null 2>&1
+if [ $? -ne 0 ]; then die "Failed to create archive." ; fi

@@ -1,0 +1,42 @@
+#!/bin/bash
+set -o nounset
+
+SUPPORTDIR=$( dirname "$(readlink -f "$0")" )
+source "$SUPPORTDIR/drunner-util-functions.sh"
+
+function upline { echo -en "\e[1A">&2 ; }
+function clipprint {
+   echo -e -n "[ $1 ] " >&2
+   echo -e "$2" | awk -v len=75 '{ if (length($0) > len) print substr($0, 1, len-3) "..."; else print; }' >&2
+}
+function checkingmsg { PFMSG="$1" ; clipprint "\e[2m?\e[0m" "$PFMSG" ; }
+function passmsg { upline ; clipprint "\e[32m\u2714\e[0m" "$PFMSG" ; }
+function failmsg { upline ; clipprint "\e[31m\e[1m\u2718\e[0m" "$PFMSG" ; }
+
+
+#
+function test0 {
+   checkingmsg "imageIsBranch for \"$IMAGENAME\" should be true."
+   ( imageIsBranch $IMAGENAME >/dev/null 2>&1 ) || { failmsg ; ((++ERRS)) ; return 1 ; }
+   passmsg
+}
+function test1 {
+   checkingmsg "imageIsBranch for \"$IMAGENAME\" should be false."
+   ! ( imageIsBranch $IMAGENAME >/dev/null 2>&1 )  || { failmsg ; ((++ERRS)) ; return 1 ; }
+   passmsg
+}
+
+ERRS=0
+
+IMAGENAME="dave" ; test1
+IMAGENAME="drunner/dave" ; test1
+IMAGENAME="drunner/dave:dev" ; test0
+IMAGENAME="drunner/dave:omaster" ; test0
+IMAGENAME="drunner/dave:mastero" ; test0
+IMAGENAME="davemaster" ; test1
+IMAGENAME="dave:dev" ; test0
+IMAGENAME=":dev" ; test0
+IMAGENAME="" ; test1
+
+[ "$ERRS" -eq 0 ] || die "$ERRS errors."
+echo "All tests passed."

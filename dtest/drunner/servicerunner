@@ -1,0 +1,144 @@
+#!/bin/bash
+                                                                                                                                                          
+#  ad88888ba                                        88                          88888888ba                                                                  
+# d8"     "8b                                       ""                          88      "8b                                                                 
+# Y8,                                                                           88      ,8P                                                                 
+# `Y8aaaaa,     ,adPPYba,  8b,dPPYba,  8b       d8  88   ,adPPYba,   ,adPPYba,  88aaaaaa8P'  88       88  8b,dPPYba,   8b,dPPYba,    ,adPPYba,  8b,dPPYba,  
+#   `"""""8b,  a8P_____88  88P'   "Y8  `8b     d8'  88  a8"     ""  a8P_____88  88""""88'    88       88  88P'   `"8a  88P'   `"8a  a8P_____88  88P'   "Y8  
+#         `8b  8PP"""""""  88           `8b   d8'   88  8b          8PP"""""""  88    `8b    88       88  88       88  88       88  8PP"""""""  88          
+# Y8a     a8P  "8b,   ,aa  88            `8b,d8'    88  "8a,   ,aa  "8b,   ,aa  88     `8b   "8a,   ,a88  88       88  88       88  "8b,   ,aa  88          
+#  "Y88888P"    `"Ybbd8"'  88              "8"      88   `"Ybbd8"'   `"Ybbd8"'  88      `8b   `"YbbdP'Y8  88       88  88       88   `"Ybbd8"'  88          
+
+
+
+#------------------------------------------------------------------------------------
+# Initialisation of globals.
+
+set -o nounset
+set -e
+
+MYDIR=$( dirname "$(readlink -f "$0")" )
+source "$MYDIR/variables.sh"
+source "$MYDIR/utils.sh"
+
+#------------------------------------------------------------------------------------
+# die MSG - show the message (red) and exit 1.
+
+function die { 
+   echo " ">&2 ; echo -e "\e[31m\e[1m${1}\e[0m">&2  ; echo " ">&2
+   exit 1 
+}
+
+#------------------------------------------------------------------------------------
+# showhelp - give some info about the service. SERVICENAME and IMAGENAME are provided by variables.sh.
+
+function showhelp {
+cat <<EOF >&2
+
+NAME
+   ${SERVICENAME}
+       
+SYNOPSIS
+   ${CODE_S}${SERVICENAME} test [IMAGENAME]${CODE_E}
+      Test functionality of IMAGENAME. Defaults to self-test.
+   
+   ${CODE_S}${SERVICENAME} testall${CODE_E}
+      Test all currently supported dRunner iamges.
+   
+DESCRIPTION
+   dRunner's test harness. Built from ${IMAGENAME}.
+   
+EOF
+}
+
+#------------------------------------------------------------------------------------
+# Run a command in the container. 
+
+function dockerrun {
+   RVAL=0
+   # don't let the bash command fail or set -e will kill us. Could use a subshell, but we only have one command so use ||
+   docker run -i -t --name="${SERVICENAME}-${COMMAND}" -h "${HOSTNAME}" "${DOCKEROPTS[@]}" "${IMAGENAME}" "$@" || RVAL=$?
+   docker rm "${SERVICENAME}-${COMMAND}" >/dev/null
+   if [ $RVAL -ne 0 ]; then die "${SERVICENAME} ${COMMAND} failed." ; fi
+}
+
+#------------------------------------------------------------------------------------
+# The main function. We can add any commands we'd like here!
+
+function main {
+   if [ "$#" -eq 0 ]; then 
+      die "servicerunner must have the install argument."
+   fi
+
+   COMMAND="${1}" ; shift
+   
+   case "$COMMAND" in 
+   
+          #--- standard (required) commands
+  
+         install)
+            ;;
+            
+         obliterate)
+            ;;
+                     
+         uninstall)
+            ;;
+                     
+         backupstart)
+            BACKUPPATH="$1"
+            echo "Restore of BACKUPPATH succeeded!" > ${BACKUPPATH}/note.txt
+            dockerrun bash -c 'echo "Restore of config succeeded!" > /config/note.txt'
+            dockerrun bash -c 'echo "Restore of data succeeded!" > /data/note.txt'
+            ;;
+         
+         backupend)
+            BACKUPPATH="$1"
+            ;;
+                     
+         restore)
+            RESTOREPATH="$1"
+            dockerrun bash -c 'cat /config/note.txt'
+            dockerrun bash -c 'cat /data/note.txt'
+
+            cat "$RESTOREPATH/note.txt" >&2
+            ;;
+         
+         help)
+            showhelp
+            ;;
+         
+         enter)
+            dockerrun /bin/bash "$@"
+            ;;
+         
+         updatestart)
+            ;;
+
+         updateend)
+            ;;
+         
+         selftest)
+            #echo "I just failed! -- stdout"
+            #echo "I just failed! -- stderr"
+            #die "Bam! Failed"
+            ;;
+            
+         #--- custom commands
+
+         test)
+            "$MYDIR/test" "$@"
+            ;;
+         
+         #--- unrecognised commands
+
+         *)
+            showhelp
+            die "drunner/dtest doesn't support the command ${CODE_S}${COMMAND}${CODE_E}"            
+            ;;
+   esac
+}
+
+#------------------------------------------------------------------------------------
+
+main "$@"

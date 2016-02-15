@@ -1,0 +1,32 @@
+#!/bin/bash
+set -o nounset
+
+# die MESSAGE 
+function die {
+   [ -n "$1" ] || { echo "Unexpected error. Exiting."<&2 ; exit 1 ; }
+   
+   echo "$1" <&2
+   exit 1
+}
+
+#------------------------------------------------------------------------------------
+# PASS=? dr_decompress ARCHIVENAME
+
+if [ "$#" -ne 1 ]; then die "PASS=? dr_decompress ARCHIVENAME" ; fi
+
+DESTFOLDER="/dst"
+ARCHIVEPATH="/src/$1"
+
+if [ ! -e "$ARCHIVEPATH" ]; then ls /src ; die "dr_decompress: No such archive: $ARCHIVEPATH"; fi
+if [ ! -d "$DESTFOLDER" ]; then die "dr_decompress: Destination folder does not exist: $DESTFOLDER"; fi
+ 
+# default to empty string if doesn't exist, then test for empty string.
+if [ -n "${PASS-}" ]; then 
+   PASSCMD="-p${PASS}"; 
+else
+   PASSCMD="-p\"\""
+   echo "WARNING: No password supplied.">&2
+fi
+
+7za x -so "${PASSCMD}" "${ARCHIVEPATH}" 2>/dev/null | tar xf - -C "${DESTFOLDER}" >/dev/null 2>&1
+if [ $? -ne 0 ]; then die "Failed to decompress archive. The password may be incorrect!"; fi
