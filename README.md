@@ -32,11 +32,11 @@ We assume here you have a standard user account called testuser which you'll use
 
 dRunner needs docker. You can install it as root with:
 ```
-   wget -nv -O /tmp/install_docker.sh https://goo.gl/2cxobx ; bash /tmp/install_docker.sh
+wget -nv -O /tmp/install_docker.sh https://goo.gl/2cxobx ; bash /tmp/install_docker.sh
 ```
 and give testuser permissions to run docker with:
 ```
-   adduser testuser docker
+adduser testuser docker
 ```
 
 
@@ -44,9 +44,9 @@ and give testuser permissions to run docker with:
 
 Now switch to a normal user (not root!). Install dRunner on the host by downloading the install script:
 ```
-    wget https://raw.githubusercontent.com/drunner/install/master/drunner-install
-    bash drunner-install ~/drunner
-    source ~/.profile
+ wget https://raw.githubusercontent.com/drunner/install/master/drunner-install
+ bash drunner-install ~/drunner
+ source ~/.profile
 ```
 Now you're ready to try things.
 
@@ -56,8 +56,8 @@ Now you're ready to try things.
 
 Install and try the [helloworld](https://github.com/j842/docker-dr-helloworld) example:
 ```
-    drunner install drunner/helloworld
-    helloworld run
+ drunner install drunner/helloworld
+ helloworld run
 ```
 helloworld is now in your path, you can run it directly, e.g. with no arguments
 to see the help.
@@ -65,21 +65,21 @@ to see the help.
 Back up helloworld to an encrypted archive (including all settings and local data),
 then destroy it, leaving the machine clean:
 ```
-   PASS=shh drunner backup helloworld hw.b
-   drunner destroy helloworld
+PASS=shh drunner backup helloworld hw.b
+drunner destroy helloworld
 ```
 Restore the backup as hithere, and run it:
 ```   
-   PASS=shh drrunner restore hw.b hi
-   hi run
+PASS=shh drrunner restore hw.b hi
+hi run
 ```
 
 ### Running some tests
 
 dRunner can test containers for compatibility and functionality. Try it out with:
 ```
-   drunner install drunner/dtest
-   dtest test drunner/helloworld
+drunner install drunner/dtest
+dtest test drunner/helloworld
 ```
 ### dRunner Images to play with
 
@@ -94,17 +94,17 @@ Other images to try:
 
 Install a container (e.g. from DockerHub) that supports dr and call the service 'SERVICENAME'.
 ```
-    drunner install IMAGENAME SERVICENAME
+drunner install IMAGENAME SERVICENAME
 ```
 
 Manage that service:
 ```
-    SERVICENAME COMMAND ARGS
+SERVICENAME COMMAND ARGS
 ```
 The available COMMANDs depend on the service; they can be things like run and configure. You can get help on the service
 which also lists the available COMMANDs with
 ```
-    SERVICENAME
+SERVICENAME
 ```
 
 Other commands that work on all services:
@@ -132,7 +132,3 @@ This is to aid Ansible use.
 
 ## Security
 See [Docker's Security Statement](https://docs.docker.com/engine/security/security) for information on security and docker.
-There's a long way to go. For now, using sudo to run docker doesn't give you much over running as root - since with sudo you can
-trivially map the host filesystem into a container and do whatever you want to it. Because of this, dRunner focuses
-on security aspects that help, such as insisting containers are not run as root user. Avoid priveleged containers and
-mapping the docker socket where possible and audit any scripts run on the host (dRunner makes this easy since they are all in one place).
