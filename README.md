@@ -2,10 +2,10 @@
 
 # dRunner
 
-dRunner is a script and a set of conventions to make it easy to install, 
+dRunner is a script and a set of conventions to make it easy to install,
 configure and use Docker containers on a Debian host via the command line interface.
 
-dRunner eliminates the need to separately store and manage scripts to use the Docker container, 
+dRunner eliminates the need to separately store and manage scripts to use the Docker container,
 or deal with long docker run commands.
 
 Features:
@@ -35,9 +35,7 @@ dRunner needs docker. You can install it as root with:
 
 #### Installing Docker Runner
 
-Ensure that you are not root.
-
-Install dRunner on the host by downloading the install script:
+Now switch to a normal user (not root!). Install dRunner on the host by downloading the install script:
 ```
     wget https://raw.githubusercontent.com/drunner/install/master/drunner-install
     bash drunner-install
@@ -56,7 +54,7 @@ Install and try the [helloworld](https://github.com/j842/docker-dr-helloworld) e
 helloworld is now in your path, you can run it directly, e.g. with no arguments
 to see the help.
 
-Back up helloworld to an encrypted archive (including all settings and local data), 
+Back up helloworld to an encrypted archive (including all settings and local data),
 then destroy it, leaving the machine clean:
 ```
    PASS=shh drunner backup helloworld hw.b
@@ -109,7 +107,7 @@ drunner update SERVICENAME                     -- update service scripts from co
 PASS=? drunner backup SERVICENAME BACKUPFILE   -- backup container, configuration and local data.
 PASS=? drunner restore BACKUPFILE SERVICENAME  -- restore container, configuration and local data.
 ```
-   
+
 
 # dRunner Compatibility
 
@@ -119,8 +117,8 @@ To see how to make a dRunner compatible docker image [read the documentation](ht
 
 The convention for exit codes is:
 * 0 for success,
-* 1 for error and 
-* 3 for no change 
+* 1 for error and
+* 3 for no change
 
 This is to aid Ansible use.
 
@@ -130,4 +128,3 @@ There's a long way to go. For now, using sudo to run docker doesn't give you muc
 trivially map the host filesystem into a container and do whatever you want to it. Because of this, dRunner focuses
 on security aspects that help, such as insisting containers are not run as root user. Avoid priveleged containers and
 mapping the docker socket where possible and audit any scripts run on the host (dRunner makes this easy since they are all in one place).
-
