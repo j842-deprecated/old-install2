@@ -2,7 +2,7 @@
 
 
 mount -t cifs //j4790/dev ./dev -o vers=2.0,user=j,sec=lanman,servern=j4790,uid=1000
- 
+
 # dRunner Compatiblity
 
 See the [main documentation](https://github.com/j842/dRunner/blob/master/README.md) for information about dRunner itself.
@@ -58,8 +58,8 @@ See below for how to mount these containers when you run commands.
 
 The convention for exit codes is:
 * 0 for success,
-* 1 for error and 
-* 3 for no change 
+* 1 for error and
+* 3 for no change
 
 This is to aid Ansible use.
 

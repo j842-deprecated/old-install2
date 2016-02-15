@@ -81,7 +81,6 @@ function chownpath {
    docker run --rm -v "$DPATH:/s" drunner/install-rootutils bash -c "$2" >/dev/null || die "chownpath command failed: $2"
 }
 
-
 #------------------------------------------------------------------------------------
 
 # copysupportfiles
