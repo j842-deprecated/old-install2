@@ -140,6 +140,7 @@ function configure {
 
    # ensure we have the latest support image.
    imageIsBranch "${SUPPORTIMAGE}" || docker pull "${SUPPORTIMAGE}" || die "Unable to pull required Docker image ${SUPPORTIMAGE}."
+   imageIsBranch "${ROOTUTILIMAGE}" || docker pull "${ROOTUTILIMAGE}" || die "Unable to pull required Docker image ${ROOTUTILIMAGE}."
 
    # creates ROOTPATH/support and populates the bin folder from SUPPORTIMAGE.
    copysupportfiles
@@ -152,6 +153,7 @@ cat <<EOF >"${ROOTPATH}/config.sh"
 # Last generated ${DATESTAMP}
 
 readonly SUPPORTIMAGE="${SUPPORTIMAGE}"
+readonly ROOTUTILIMAGE="${ROOTUTILIMAGE}"
 readonly DRUNNERINSTALLURL="${DRUNNERINSTALLURL}"
 readonly DRUNNERINSTALLTIME="${DATESTAMP}"
 EOF
@@ -198,7 +200,8 @@ if [ "$#" -ne 1 ]; then
 fi
 
 ROOTPATH="$1"
-SUPPORTIMAGE="drunner/install-support:latest"
+SUPPORTIMAGE="drunner/install-support"
+ROOTUTILIMAGE="drunner/install-rootutils"
 DRUNNERINSTALLURL="https://raw.githubusercontent.com/drunner/install/master/drunner-install"
 
 # preserve existing settings if present.
