@@ -119,13 +119,12 @@ function copysupportfiles {
 
 #------------------------------------------------------------------------------------
 
-# imageNameisDev
-# user:   if imageIsDev IMAGENAME ; then ....
-function imageIsDev {
+# imageIsBranch
+# user:   if imageIsBranch IMAGENAME ; then ....
+function imageIsBranch {
    local IMAGEN="${1:-""}"
-   [ -n "$IMAGEN" ] || die "IMAGENAME is empty string in imageNameisDev."
-
-   [[ $IMAGEN == *":dev" ]]
+   [ -n "$IMAGEN" ] || die "IMAGENAME is empty string in imageIsBranch."
+   [[ $IMAGEN != *":master" && $IMAGEN == *":"* ]]
 }
 
 #------------------------------------------------------------------------------------
@@ -141,7 +140,7 @@ function configure {
    local DATESTAMP="$(TZ=Pacific/Auckland date)"
 
    # ensure we have the latest support image.
-   imageIsDev "${SUPPORTIMAGE}" || docker pull "${SUPPORTIMAGE}" || die "Unable to pull required Docker image ${SUPPORTIMAGE}."
+   imageIsBranch "${SUPPORTIMAGE}" || docker pull "${SUPPORTIMAGE}" || die "Unable to pull required Docker image ${SUPPORTIMAGE}."
 
    # creates ROOTPATH/support and populates the bin folder from SUPPORTIMAGE.
    copysupportfiles
