@@ -12,7 +12,6 @@ set -e
 
 # check that drunner itself is installed okay.
 
-
 # Formatting for comamnds - standardised.
 readonly ecode=$(printf "\e")
 readonly CODE_S="$ecode[32m"
