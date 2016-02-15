@@ -89,7 +89,7 @@ function copysupportfiles {
    mkdir -p "${ROOTPATH}/support"    || die "Couldn't create ${ROOTPATH}/support"
    chmod 0777 "${ROOTPATH}/support"  || die "Couldn't set permissions on ${ROOTPATH}/support"
    [ -d "${ROOTPATH}/services" ]     || mkdir -p "${ROOTPATH}/services" || die "Couldn't create ${ROOTPATH}/services"
-   [ -d "${ROOTPATH}/temp"]          || { mkdir -p "${ROOTPATH}/temp" && chmod 0777 "${ROOTPATH}/temp" ; } || die "Couldn't create ${ROOTPATH}/temp"
+   [ -d "${ROOTPATH}/temp" ]         || { mkdir -p "${ROOTPATH}/temp" && chmod 0777 "${ROOTPATH}/temp" ; } || die "Couldn't create ${ROOTPATH}/temp"
 
    # copy the support files from the install-support image onto the host.
    docker run --rm -it -v "${ROOTPATH}/support:/tempcopy" "${SUPPORTIMAGE}" \
