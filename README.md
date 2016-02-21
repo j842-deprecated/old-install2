@@ -5,7 +5,7 @@ dRunner is under development. Try it, don't trust it!
 Current status (22/02/2016):
 * Main dRunner scripts are functional but unoptimised (e.g. sometimes will pull twice in one operation).
 * Core services are okay (helloworld, dtest, ddev, simplesecrets)
-* Extra services (e.g. minecraft) are broken
+* Extra services (e.g. minecraft) are broken. Minecraft in particular is very broken - don't leave it running.
 
 Next steps:
 * dRunner is being re-written in C++ with becoming production ready in mind. The new version should be compatible with existing dServices without modification. ETA for completion is Wednesday.
