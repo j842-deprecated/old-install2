@@ -1,4 +1,16 @@
-## Under development. Try it, don't trust it!
+# Status
+
+dRunner is under development. Try it, don't trust it!
+
+Current status (22/02/2016):
+* Main dRunner scripts are functional but unoptimised (e.g. sometimes will pull twice in one operation).
+* Core services are okay (helloworld, dtest, ddev, simplesecrets)
+* Extra services (e.g. minecraft) are broken
+
+Next steps:
+* dRunner is being re-written in C++ with becoming production ready in mind. The new version should be compatible with existing dServices without modification. ETA for completion is Wednesday.
+* Extra services (minecraft, Ansible, samba) will be fixed.
+* Support will be added for templating with Docker Compose rather than creating a custom file for volumes and extra containers.
 
 # dRunner
 
