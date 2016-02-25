@@ -26,7 +26,7 @@ Features:
 * Flexible configuration for each service, stored in Docker Volume containers that are managed for you
 * Services can consist of any number of containers
 * Backup an entire service to a single file, trivially restore on another machine
-* Destroying a service leaves the machine in a clean state, no cruft left
+* Obliterating a service leaves the machine in a clean state, no cruft left
 * Everything in containers is run as a non-root user, drunner on host runs as non-root
 * Trivial to install a service multiple times with different configurations (e.g. mulitple minecraft servers)
 * Ansible friendly for automation (see [Exit Codes](https://github.com/j842/dr#exit-codes) below).
@@ -75,10 +75,10 @@ helloworld is now in your path, you can run it directly, e.g. with no arguments
 to see the help.
 
 Back up helloworld to an encrypted archive (including all settings and local data),
-then destroy it, leaving the machine clean:
+then obliterate it, leaving the machine clean:
 ```
 PASS=shh drunner backup helloworld hw.b
-drunner destroy helloworld
+drunner obliterate helloworld
 ```
 Restore the backup as hithere, and run it:
 ```   
@@ -121,7 +121,7 @@ SERVICENAME
 
 Other commands that work on all services:
 ```
-drunner destroy SERVICENAME                    -- destroy service and ALL data! Leaves host in clean state.
+drunner obliterate SERVICENAME                 -- uninstalls service and removes ALL data! Leaves host in clean state.
 drunner update SERVICENAME                     -- update service scripts from container (and docker pull)
 
 PASS=? drunner backup SERVICENAME BACKUPFILE   -- backup container, configuration and local data.
