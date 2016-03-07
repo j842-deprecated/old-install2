@@ -125,7 +125,7 @@ function updatedr {
    ( # subshell so we can be sure we remove the temp folder.
       echo "Downloading from $DRUNNERINSTALLURL"
       local TRGT="/tempdir/drunner-install"
-      docker run -it --name="drunner-downloadfile" -v "${TEMPDIR}:/tempdir" "drunner/install-rootutils" \
+      docker run -i --name="drunner-downloadfile" -v "${TEMPDIR}:/tempdir" "drunner/install-rootutils" \
          bash -c "wget --no-cache -nv -O $TRGT ${DRUNNERINSTALLURL} && chmod 0555 $TRGT" >/dev/null
       local RVAL="$?"
       docker rm "drunner-downloadfile" >/dev/null 2>&1
