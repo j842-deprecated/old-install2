@@ -60,7 +60,7 @@ function recreateservice {
    imageIsBranch "$IMAGENAME" || docker pull "${IMAGENAME}" || die "Unable to pull required Docker image ${IMAGENAME}."
 
    # assumes docker image does not use entrypoint. Could instead override entrypoint maybe.
-   docker run --rm -it -v "${ROOTPATH}/services/${SERVICENAME}/drunner:/tempcopy" "${IMAGENAME}" /bin/bash -c "cp -r /drunner/* /tempcopy/"
+   docker run --rm -i -v "${ROOTPATH}/services/${SERVICENAME}/drunner:/tempcopy" "${IMAGENAME}" /bin/bash -c "cp -r /drunner/* /tempcopy/"
    if [ $? -ne 0 ]; then
       echo "Failed to copy files.">&2
       echo "You will need to reinstall the service.">&2

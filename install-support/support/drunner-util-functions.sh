@@ -51,7 +51,7 @@ function volexists {
 # use:        local USERID=$(getUSERID "$IMAGENAME")
 function getUSERID {
    if [ -z "$1" ]; then die "getUSERID: requires IMAGENAME passed as first argument."; fi
-   docker run --rm -it "${1}" /bin/bash -c "id -u | tr -d '\r\n'" || die "getUSERID: Couldn't run ${1} to get user ID."
+   docker run --rm -i "${1}" /bin/bash -c "id -u | tr -d '\r\n'" || die "getUSERID: Couldn't run ${1} to get user ID."
 }
 
 #------------------------------------------------------------------------------------

@@ -92,7 +92,7 @@ function copysupportfiles {
    [ -d "${ROOTPATH}/temp" ]         || { mkdir -p "${ROOTPATH}/temp" && chmod 0777 "${ROOTPATH}/temp" ; } || die "Couldn't create ${ROOTPATH}/temp"
 
    # copy the support files from the install-support image onto the host.
-   docker run --rm -it -v "${ROOTPATH}/support:/tempcopy" "${SUPPORTIMAGE}" \
+   docker run --rm -i -v "${ROOTPATH}/support:/tempcopy" "${SUPPORTIMAGE}" \
       /bin/bash -c "cp -r /support/* /tempcopy/"
 
    if [ $? -ne 0 ]; then
