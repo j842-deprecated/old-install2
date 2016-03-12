@@ -1,8 +1,5 @@
 ## Under development. Try it, don't trust it!
 
-
-mount -t cifs //j4790/dev ./dev -o vers=2.0,user=j,sec=lanman,servern=j4790,uid=1000
-
 # dRunner Compatiblity
 
 See the [main documentation](https://github.com/j842/dRunner/blob/master/README.md) for information about dRunner itself.
