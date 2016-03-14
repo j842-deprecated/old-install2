@@ -1,5 +1,7 @@
 # Status
 
+DEPRECATED. See http://drunner.io
+
 dRunner is under development. Try it, don't trust it!
 
 Current status (22/02/2016):
