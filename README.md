@@ -1,6 +1,8 @@
-# Status
+# Status - DEPRECATED. 
 
-DEPRECATED. See http://drunner.io
+See http://drunner.io
+
+# Old info
 
 dRunner is under development. Try it, don't trust it!
 
