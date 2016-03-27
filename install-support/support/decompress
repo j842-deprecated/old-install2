@@ -25,7 +25,7 @@ if [ -d "$1" ]; then
 else
    # volume
    volexists "$1"
-   if [ $? -ne 0 ]; then die "$1 is not a valid path nor Docker volume container." ; fi   
+   if [ $? -ne 0 ]; then die "$1 is not a valid path nor Docker volume container." ; fi
    DEST="$1"
 fi
 
@@ -34,17 +34,17 @@ if [ $? -ne 0 ]; then die "decompress: Couldn't find source path ${2}." ; fi
 
 ARCHIVENAME="$3"
 
-if [ ! -e "${ARCHIVEFOLDER}/${ARCHIVENAME}" ]; then 
-   die "decompress: archive does not exist: ${ARCHIVEFOLDER}/${ARCHIVENAME}"; 
+if [ ! -e "${ARCHIVEFOLDER}/${ARCHIVENAME}" ]; then
+   die "decompress: archive does not exist: ${ARCHIVEFOLDER}/${ARCHIVENAME}";
 fi
 
 # ensure PASS exists.
 [ -v PASS ] || PASS=""
-  
+
 docker run -i -t --name="dr_decompress" -e "PASS=${PASS}" \
             -v "${ARCHIVEFOLDER}:/src" -v "${DEST}:/dst" \
             drunner/install-rootutils dr_decompress "${ARCHIVENAME}"
 RVAL=$?
 docker rm "dr_decompress" >/dev/null 2>&1
 
-exit "$RVAL" 
+exit "$RVAL"
