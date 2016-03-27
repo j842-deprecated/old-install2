@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset
 
-# die MESSAGE 
+# die MESSAGE
 function die {
    if [ -n "$1" ]; then
       echo "$1" <&2
@@ -23,8 +23,8 @@ if [ -e "$ARCHIVEPATH" ]; then die "Archive $1 already exists. Aborting." ; fi
 if [ ! -d "$SOURCEFOLDER" ]; then die "dr_compress: Source folder does not exist: $SOURCEFOLDER"; fi
 
 # default to empty string if doesn't exist, then test for empty string.
-if [ -n "${PASS-}" ]; then 
-   PASSCMD="-p${PASS}"; 
+if [ -n "${PASS-}" ]; then
+   PASSCMD="-p${PASS}";
 else
    PASSCMD=""
    echo "WARNING: No password supplied. Backup is not encrypted!">&2

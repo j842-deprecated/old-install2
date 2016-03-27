@@ -4,14 +4,14 @@
 # --- generally should be okay if used with 'set -e'.
 
 # Formatting for comamnds - standardised.
-[ -v ECODE ] || readonly ECODE=$(printf "\e") 
+[ -v ECODE ] || readonly ECODE=$(printf "\e")
 [ -v CODE_S ] || readonly CODE_S="$ECODE[32m"
 [ -v CODE_E ] || readonly CODE_E="$ECODE[0m"
 
 #------------------------------------------------------------------------------------
 # die MSG [EXITCODE] - show the message (red) and exit exitcode.
 
-function die { 
+function die {
    echo " ">&2 ; echo -e "\e[31m\e[1m${1}\e[0m">&2  ; echo " ">&2
    EXITCODE=${2:-1}
    exit "$EXITCODE"
@@ -49,7 +49,7 @@ function container_paused {
 function utils_import {
    [ "$#" -eq 2 ] || die "utils_import -- requires two arguments (the path to be imported and the container's destination path)."
    [ -d "$1" ] || die "utils_import -- source path does not exist: $1"
-   
+
    dockerrun bash -c "rm -r $2/*"
    tar cf - -C "$1" . | docker run -i --name="${SERVICENAME}-importfn" "${DOCKEROPTS[@]}" "${IMAGENAME}" tar -xv -C "$2"
    RVAL=$?
@@ -63,12 +63,9 @@ function utils_import {
 function utils_export {
    [ "$#" -eq 2 ] || die "utils_export -- requires two arguments (the container's source path and the path to be exported to)."
    [ -d "$2" ] || die "utils_export -- destination path does not exist."
-   
-   docker run -i --name="${SERVICENAME}-exportfn" "${DOCKEROPTS[@]}" "${IMAGENAME}" tar cf - -C "$1" . | tar -xv -C "$2" 
+
+   docker run -i --name="${SERVICENAME}-exportfn" "${DOCKEROPTS[@]}" "${IMAGENAME}" tar cf - -C "$1" . | tar -xv -C "$2"
    RVAL=$?
    docker rm "${SERVICENAME}-exportfn" >/dev/null
    [ $RVAL -eq 0 ] || die "utils_export failed to transfer the files."
 }
-            
-
-

@@ -2,28 +2,28 @@
 set -o nounset
 set -e
 
-# ██╗   ██╗ █████╗ ██╗     ██╗██████╗  █████╗ ████████╗ ██████╗ ██████╗ 
+# ██╗   ██╗ █████╗ ██╗     ██╗██████╗  █████╗ ████████╗ ██████╗ ██████╗
 # ██║   ██║██╔══██╗██║     ██║██╔══██╗██╔══██╗╚══██╔══╝██╔═══██╗██╔══██╗
 # ██║   ██║███████║██║     ██║██║  ██║███████║   ██║   ██║   ██║██████╔╝
 # ╚██╗ ██╔╝██╔══██║██║     ██║██║  ██║██╔══██║   ██║   ██║   ██║██╔══██╗
 #  ╚████╔╝ ██║  ██║███████╗██║██████╔╝██║  ██║   ██║   ╚██████╔╝██║  ██║
 #   ╚═══╝  ╚═╝  ╚═╝╚══════╝╚═╝╚═════╝ ╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝
-                                                                                         
+
 # Formatting for comamnds - standardised.
-readonly ecode=$(printf "\e") 
+readonly ecode=$(printf "\e")
 readonly CODE_S="$ecode[32m"
 readonly CODE_E="$ecode[0m"
 
-# die MESSAGE 
+# die MESSAGE
 function die {
    [ -e "${ROOTPATH}/services/${SERVICENAME}" ] || { echo -e "\e[31m\e[1mThere's no installed service called \"${SERVICENAME}\".\e[0m" ; exit 1 ; }
 
    echo -e " ">&2
    echo -e "\e[31m\e[1mService broken. ${1}\e[0m">&2
    echo -e " ">&2
-   
+
    [ -z "$NUKEOK" ] || exit 1
-      
+
    echo -e " ">&2
    echo -e "You can try recovering with ${CODE_S}drunner recover ${SERVICENAME}${CODE_E}.">&2
    echo -e "That will preserve data and configuration and should be safe to try.">&2
@@ -42,7 +42,7 @@ source "${ROOTPATH}/config.sh"
 SERVICENAME=${1:-""}
 NUKEOK=${2:-""}
 
-if [ -z "SERVICENAME" ]; then 
+if [ -z "SERVICENAME" ]; then
    echo -e "Usage: ${CODE_S}validator-service SERVICENAME${CODE_E}">&2
    echo -e "SERVICENAME=$1"
    exit 1

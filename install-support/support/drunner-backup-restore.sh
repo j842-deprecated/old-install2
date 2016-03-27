@@ -9,20 +9,20 @@ function backup {
    if [ -z "$1" ]; then die "No BACKUPFILE was specified." ; fi
    local BACKUPFILE=$(realpath "$1" | tr -d '\r\n')
    if [ -e "$BACKUPFILE" ]; then die "$BACKUPFILE already exists. Aborting." ; fi
-   
+
    # only backup valid services. (otherwise recover then backup!)
    "${ROOTPATH}/support/validator-service" "$SERVICENAME" || die "Use ${CODE_S}drunner recover ${SERVICENAME}${CODE_E} before backing up."
-   
+
    local TEMPROOT="$(mktempd_drunner)"
-   
+
    ( # SUBSHELL so we can tidy up easily if it goes wrong.
       # bail if any command returns an error!
       set -e
-      
+
       local TEMPPARENT="${TEMPROOT}/backup"
       local TEMPF="${TEMPPARENT}/drbackup"
       mkdir -p "$TEMPF"
-      
+
       # output variables needed for restore to the tempparent folder
       STR_DOCKERVOLS=""
       if [ -v DOCKERVOLS ]; then printf -v STR_DOCKERVOLS "\"%s\" " "${DOCKERVOLS[@]}" ; fi
@@ -38,31 +38,31 @@ EOF
       local TEMPC="${TEMPPARENT}/containerbackup"
       mkdir -p "$TEMPC"
       # Need to allow both our EUID on the host and the containers USERID full access to the $TEMPC folder.
-      # The dService's backup action is run on the host with possible bits run in the container. 
+      # The dService's backup action is run on the host with possible bits run in the container.
       # The host EUID can vary (e.g. backup and restore might be different) so we use 0777.
       chmod 0777 "$TEMPC" || die "Couldn't change permissions for ${TEMPC}."
       "${ROOTPATH}/services/${SERVICENAME}/drunner/servicerunner" backupstart "$TEMPC"
-                  
+
       # back up our volume containers
       if [ -v DOCKERVOLS ]; then
-         for VOLNAME in "${DOCKERVOLS[@]}"; do      
+         for VOLNAME in "${DOCKERVOLS[@]}"; do
             volexists "$VOLNAME"
             [ $? -eq 0 ] || die "A docker volume required for the backup was missing: $VOLNAME"
             "${ROOTPATH}/support/compress" "$VOLNAME" "${TEMPF}" "${VOLNAME}.tar.7z"
             [ -e "${TEMPF}/${VOLNAME}.tar.7z" ] || die "Unable to back up ${VOLNAME}."
-         done      
+         done
       fi
 
       "${ROOTPATH}/services/${SERVICENAME}/drunner/servicerunner" backupend "$TEMPC"
-      
+
       # Compress everything with password
       "${ROOTPATH}/support/compress" "$TEMPPARENT" "$TEMPROOT" backupmain.tar.7z
       mv "${TEMPROOT}/backupmain.tar.7z" "$BACKUPFILE"
    )
-   RVAL="$?" 
+   RVAL="$?"
    rm -rf "${TEMPROOT}"
    [ $RVAL -eq 0 ] || die "Backup failed. Temp files have been removed."
-   
+
    echo " ">&2
    echo "Backed up to $BACKUPFILE succesfully.">&2
 }
@@ -75,9 +75,9 @@ function restore {
    local BACKUPFILE=$(realpath "$1" | tr -d '\r\n')
    if [ ! -e "$BACKUPFILE" ]; then die "$BACKUPFILE doesn't exist. Aborting." ; fi
    if [ -e "${ROOTPATH}/services/${SERVICENAME}" ]; then die "$SERVICENAME exists - destroy it before restoring from backup." ; fi
-   
+
    local TEMPROOT="$(mktempd_drunner)"
-   
+
    ( # SUBSHELL so we can tidy up easily if it goes wrong.
       # bail if any command returns an error!
       set -e
@@ -86,14 +86,14 @@ function restore {
       mkdir -p "$TEMPPARENT"
       local TEMPF="${TEMPPARENT}/drbackup"
       local TEMPC="${TEMPPARENT}/containerbackup"
-      
+
       # decompress the main backup
       cp "$BACKUPFILE" "${TEMPROOT}/backupmain.tar.7z"
       "${ROOTPATH}/support/decompress" "$TEMPPARENT" "$TEMPROOT" "backupmain.tar.7z"
 
       # loads the old DOCKERVOLS and IMAGENAME
       source "${TEMPPARENT}/_oldvariables"
-         
+
       # check backup has key files.
       if [ ! -e "$TEMPC" ]; then die "Backup corrupt. Missing ${TEMPC}."; fi
       if [ -v OLDDOCKERVOLS ]; then
@@ -101,31 +101,31 @@ function restore {
             if [ ! -e "${TEMPF}/${NEEDEDFILE}.tar.7z" ]; then die "Backup corrupt. Missing backup file for docker volume ${NEEDEDFILE}."; fi
          done
       fi
-      
-      # now can install base service. 
+
+      # now can install base service.
       ( # install in another subshell so it doesn't exit on us.
       installservice
       )
       RVAL="$?"
       [ $RVAL -eq 0 ] || { echo "Fail on install - aborting.">&2 ; exit $RVAL ; }
-      
+
       # load DOCKERVOLS etc so we can restore the volumes.
       validateLoadService
-         
+
       # restore volumes.
       # zip file names are based on the _old_ DOCKERVOLS, new volume name based on hte new ones.
       if [ -v OLDDOCKERVOLS ]; then
          if [ "${#OLDDOCKERVOLS[@]}" -gt "${#DOCKERVOLS[@]}" ]; then die "The number of volume containers the image requires has decreased. Not safe to restore." ; fi
          if [ "${#OLDDOCKERVOLS[@]}" -lt "${#DOCKERVOLS[@]}" ]; then echo "The number of volume containers the image specifies has increased. We'll restore what we can, but this container might not work :/" ; fi
 
-         for i in "${!OLDDOCKERVOLS[@]}"; do      
+         for i in "${!OLDDOCKERVOLS[@]}"; do
             OLDVOLNAME="${OLDDOCKERVOLS[i]}"
             NEWVOLNAME="${DOCKERVOLS[i]}"
-            
+
             "${ROOTPATH}/support/decompress" "$NEWVOLNAME" "${TEMPF}" "${OLDVOLNAME}.tar.7z"
          done
       fi
-      
+
       # call through to container to restore its backup in TEMPC. Imporant this is the last step,
       # so it can use any docker volumes, the variables.sh file etc.
       #local USERID=$(getUSERID "$IMAGENAME")
@@ -133,16 +133,16 @@ function restore {
       "${ROOTPATH}/services/${SERVICENAME}/drunner/servicerunner" restore "$TEMPC"
    )
    RVAL="$?"
-   rm -r "${TEMPROOT}"  
-   if [ $RVAL -ne 0 ]; then 
-      if [ -e "${ROOTPATH}/services/${SERVICENAME}" ]; then 
-         obliterateService 
+   rm -r "${TEMPROOT}"
+   if [ $RVAL -ne 0 ]; then
+      if [ -e "${ROOTPATH}/services/${SERVICENAME}" ]; then
+         obliterateService
       fi
       die "Restore failed. Temp files have been removed, system back in clean state."
    fi
-      
+
    echo "The backup ${BACKUPFILE##*/} has been restored to ${SERVICENAME}."
-   
+
    # our globals haven't been updated outside the subshell (IMAGENAME not set for example) so exit to be safe.
    exit 0
 }

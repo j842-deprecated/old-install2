@@ -7,7 +7,7 @@ set -o nounset
 # ██║     ██║   ██║██║╚██╔╝██║██╔═══╝ ██╔══██╗██╔══╝  ╚════██║╚════██║
 # ╚██████╗╚██████╔╝██║ ╚═╝ ██║██║     ██║  ██║███████╗███████║███████║
 #  ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝
-                                                                                                                                                   
+
 readonly MYDIR=$( dirname "$(readlink -f "$0")" )
 ROOTPATH=$(realpath "$MYDIR/../" | tr -d '\r\n')
 source "${ROOTPATH}/support/drunner-util-functions.sh"
@@ -25,7 +25,7 @@ if [ -d "$1" ]; then
 else
    # volume
    volexists "$1"
-   if [ $? -ne 0 ]; then die "$1 is not a valid path nor Docker volume container." ; fi   
+   if [ $? -ne 0 ]; then die "$1 is not a valid path nor Docker volume container." ; fi
    SOURCE="$1"
 fi
 
@@ -53,4 +53,3 @@ fi
 rm -r "${TEMPDIR}"
 
 exit "$RVAL"
-
